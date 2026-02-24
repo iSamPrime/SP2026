@@ -16,42 +16,19 @@ node --watch server
 
 
 -------------------------------
-git remote add "origin" git@github.com/iSamPrime/SP2026
-git remote set-url "origin" github.com/iSamPrime/SP2026
 
-git push --set-upstream origin main --force
-
-git push origin main
-
-
-git init 
-
+# 
 git add . 
-
-git commit -m "V0.0.0"
-
+git status 
+git commit -m "V"
 git push -u origin main 
-
-
 
 
 git config --global user.name "ISamPrime"
 git config --global user.email "isssamawad3@gmail.com"
 
-
-git clone https://github.com/iSamPrime/SP2026.git
-git pull origin main
-
-
-
-
-
-
-
 # …or create a new repository on the command line
-echo "# SP2026" >> README.md
 git init
-git add README.md
 git commit -m "first commit"
 git branch -M main
 git remote add origin https://github.com/iSamPrime/SP2026.git
