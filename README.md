@@ -27,6 +27,10 @@ git push -u origin main
 git config --global user.name "ISamPrime"
 git config --global user.email "isssamawad3@gmail.com"
 
+
+#
+git pull origin main
+
 # …or create a new repository on the command line
 git init
 git commit -m "first commit"
