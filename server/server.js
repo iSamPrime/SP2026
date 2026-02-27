@@ -1,7 +1,9 @@
+require("dotenv").config();
 const express = require("express");
 const app = express();
 app.use(express.json());
-const path = require("path");
+const path = require("path"); 
+import * as db from "./db"
 
 const { createServer } = require("http");
 const { Server } = require("socket.io");
@@ -9,7 +11,7 @@ app.set("trust proxy", 1); // trust first proxy
 const server = createServer(app);
 const io = new Server(server,);
 
-const port = 5555;
+const port = process.env.PORT;
 app.use(express.static(path.join(__dirname, "../client/dist"))); 
 
 io.on("connection", (socket) => {
@@ -17,6 +19,7 @@ io.on("connection", (socket) => {
 
   socket.on("msg", (text)=>{
   console.log(text)
+  db.query('')
 })
   
 });

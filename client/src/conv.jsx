@@ -12,12 +12,6 @@ export default function Conv({msgs}){
             console.log(socketRef.current.id); 
         })
     }, [])
-    
-/*     const socket = io();
-    socket.on("connect", (socket) => {
-        console.log(socket.id); 
-    }); */
-
 
     const [theMsg, setTheMsg] = useState("")
 
