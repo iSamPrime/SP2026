@@ -3,7 +3,7 @@ const express = require("express");
 const app = express();
 app.use(express.json());
 const path = require("path"); 
-import * as db from "./db"
+/* import * as db from "./db" */
 
 const { createServer } = require("http");
 const { Server } = require("socket.io");
@@ -19,12 +19,14 @@ io.on("connection", (socket) => {
 
   socket.on("msg", (text)=>{
   console.log(text)
-  db.query('')
-})
+  io.emit("msgback", text);
+  /* db.query('') */
+
+  })
   
 });
 
 
 
 
-server.listen(port, ()=>{console.log("Server is running")});
+server.listen(port, ()=>{console.log("Server is running on: http://localhost:" + port)});
