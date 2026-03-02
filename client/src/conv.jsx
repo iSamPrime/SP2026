@@ -1,17 +1,15 @@
 import Msg from './msg.jsx';
-import { useState, useRef, useEffect} from 'react';
-import { io } from 'socket.io-client'
+import { useState,  useEffect} from 'react';
 
 
-export default function Conv(){
-    const socketRef = useRef(null);
+
+export default function Conv({socketIo}){
 
     useEffect(()=>{
-        socketRef.current = io();
-        socketRef.current.on("connect", () => {
+        socketIo.on("connect", () => {
             console.log(socketRef.current.id); 
-            socketRef.current.on("msgback", (msg)=>{
-                if(socketRef.current.connected){
+            socketIo.on("msgback", (msg)=>{
+                if(socketIo.connected){
                     setMsgs(prev => [...prev, msg])
                 }
     })
@@ -43,9 +41,9 @@ export default function Conv(){
 
             if(!text) {alert("Empty message"); return}
         
-            if(socketRef.current.connected){
+            if(socketIo.connected){
                 const msg = {id: 5, sender:"Banana", time: 14, text: text, src: "", alt: "GG"}
-                socketRef.current.emit("msg", msg);
+                socketIo.emit("msg", msg);
                 setTheMsg('');
             } else {
                 alert("Connection lost!"); return;

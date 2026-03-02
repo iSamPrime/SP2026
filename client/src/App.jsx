@@ -1,7 +1,7 @@
 import Conv from './conv.jsx';
 
 
-function App() {
+function App({socketIo}) {
 
 
 //../public/download.png
@@ -9,7 +9,7 @@ function App() {
 
   return (
     <>
-      <Conv/>
+      <Conv socketIo = {socketIo}/>
 
     </>
   )
