@@ -44,7 +44,7 @@ export default function Conv({socketIo}){
             if(!text) {alert("Empty message"); return}
         
             if(socketIo.connected){
-                const msg = {id: 5, sender:"Banana", time: date, text: text, src: "", alt: "GG"}
+                const msg = {id: 5, sender:"banana", time: date, text: text, src: "", alt: "GG"}
                 socketIo.emit("msg", msg);
                 setTheMsg('');
             } else {
@@ -71,7 +71,7 @@ export default function Conv({socketIo}){
                 onChange={(e) => setTheMsg(e.target.value)} 
                 onKeyDown={handleEnter}
                 placeholder='Type here..'
-                className='bg-gray-500 rounded-xl border-1 border-black px-2 py-1 h-16'
+                className='bg-gray-500 rounded-xl border-1 border-black px-2 py-1 h-16 focus:outline-sky-500'
             ></textarea>
 
 
