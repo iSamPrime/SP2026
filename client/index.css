@@ -1,1 +1,37 @@
 @import "tailwindcss";
+
+.login-button{
+    grid-area: login-button;
+}
+
+.register-button{
+    grid-area: register-button;
+}
+
+.logout-button{
+    grid-area: logout-button;
+}
+
+.Aform{
+    grid-area: Aform;
+}
+
+.auth-grid-area-logout{
+    grid-template-columns: 1fr;
+    grid-template-areas: 
+        "logout-button";
+}
+
+.auth-grid-area{
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas: 
+        "login-button register-button";
+}
+
+.auth-grid-area-form{
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas: 
+        "login-button register-button"
+        "Aform Aform";
+    
+}

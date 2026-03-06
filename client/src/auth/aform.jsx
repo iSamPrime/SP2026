@@ -2,13 +2,13 @@
 
 export default function Aform({id, email, pw, setEmail, setPW}){
 
-const inputCss = "border-2 border-gray-600 rounded-lg p-1 text-sm focus:outline-sky-500" 
+const inputCss = " w-full border-2 border-gray-600 rounded-lg p-1 text-sm focus:outline-sky-500" 
 const pCss = "text-md" 
-const divCss = "grid "
+const divCss = " "
  
     return(
-        <div className="max-w-90 p-5">
-            <h2 className="text-3xl">
+        <div className="max-w-90 py-5 Aform">
+            <h2 className="text-4xl justify-self-center">
                 {id === "register" ? "Register" : (id  === "login" ? "Login" : "Afrom id error")}
             </h2>
             <form 
