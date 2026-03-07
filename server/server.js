@@ -38,14 +38,17 @@ io.on("connection", (socket) => {
   console.log(socket.id) //REMOVE
 
   socket.on("msg", (text)=>{
+
     console.log(text) //REMOVE
     io.emit("msgback", text);
-    // db.query('')
-  })
+    
+  }) 
 });
 
 
 const users = [] //REMOVE
+const msgs = [] //REMOVE
+
 
 function validatEmail(data){
   return body(data).trim().escape().isEmail().withMessage('Please enter a valid email!')
@@ -127,7 +130,7 @@ app.post("/loggingin",
         //db.query('')
         
         return res.send("loggedIn")
-        
+
       } else {
         res.send("Something went wrong")
       }
@@ -143,9 +146,9 @@ app.post("/loggingin",
 ) 
 
 app.get("/session", (req, res)=>{
-  const loggedIn = req.session.loggedIn
+  const session0 = req.session
   if(req.session.userId) {
-    res.json({loggedIn}) 
+    res.json(session0) 
   } 
 })
 

@@ -3,9 +3,11 @@ import { useState,  useEffect} from 'react';
 
 
 
-export default function Conv({socketIo}){
+export default function Conv({socketIo, session0}){
 
     const date = new Date();
+    
+    
 
     useEffect(()=>{
         socketIo.on("connect", () => {
@@ -19,6 +21,15 @@ export default function Conv({socketIo}){
     }, [])
 
 
+
+
+    const [theSession, setTheSession] = useState(null)
+    useEffect(()=>{
+        if(!session0) return
+        setTheSession(session0)
+    }, [session0])
+
+
     
 
 
@@ -26,7 +37,7 @@ export default function Conv({socketIo}){
                 {id: 2, sender:"GGgggggggggggg", time: 13,text: "gggggggggggggggggggggggggggggggggggggggggggggggg", src: "", alt: "GG"},
                 {id: 3, sender:"Someone", time: 13, text: "gg", src: "", alt: "GG"},
                 {id: 4, sender:"Isac", time: 13, text: "gg", src: "", alt: "GG"}
-    ])
+    ]) //EDIT
 
 
 
@@ -44,7 +55,7 @@ export default function Conv({socketIo}){
             if(!text) {alert("Empty message"); return}
         
             if(socketIo.connected){
-                const msg = {id: 5, sender:"banana", time: date, text: text, src: "", alt: "GG"}
+                const msg = {id: 5, userId: theSession.userId ,sender:theSession.email.split("@")[0], time: date, text: text, src: "", alt: "GG"}
                 socketIo.emit("msg", msg);
                 setTheMsg('');
             } else {
@@ -57,15 +68,13 @@ export default function Conv({socketIo}){
 
     
 
-
-
     return(
         <div 
             className="grid max-w-100 
             bg-gray-600 border-2 border-black rounded-xl p-1
             gap-2"
         >
-            <Msg msgs={msgs} />
+            <Msg msgs={msgs} session0={theSession} />
             <textarea 
                 type="text" value={theMsg} 
                 onChange={(e) => setTheMsg(e.target.value)} 

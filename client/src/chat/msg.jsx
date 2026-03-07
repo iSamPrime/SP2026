@@ -1,12 +1,17 @@
+import { useEffect, useState } from "react"
 
-export default function Msg({msgs}){
+export default function Msg({msgs, session0}){
 
-
+    const [theSession, setTheSession] = useState(null)
+    useEffect(()=>{
+        if(!session0) return
+        setTheSession(session0)
+    }, [session0])
 
     return(
         msgs.map((p) => (
             <div key={p.id} 
-                 className={` ${p.sender==="banana" ? "bg-blue-100 justify-self-start" : "bg-green-100 justify-self-end"} 
+                 className={` ${p.userId=== theSession?.userId ? "bg-blue-100 justify-self-start" : "bg-green-100 justify-self-end"} 
                  max-w-80 w-max min-h-10 rounded-xl
                  px-2 py-1
                  line-clamp-1000000000
