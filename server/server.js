@@ -7,15 +7,24 @@ app.use(express.json());
 
 app.use(express.urlencoded({extended:true}));
 const session = require('express-session');
-app.use(session({
-    secret: process.env.PASS,
-    resave: false,
-    saveUninitialized: true,
-    cookie: {
-        httpOnly: true,
-        maxAge: 1000 * 60 * 60 * 24, 
-    }
-}))
+
+const { createServer } = require("http");
+const { Server } = require("socket.io");
+app.set("trust proxy", 1); // trust first proxy
+const server = createServer(app);
+const io = new Server(server);
+
+const sessionMiddleware = session({
+  secret: process.env.PASS,
+  resave: false,
+  saveUninitialized: true,
+  cookie: {
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24, 
+  }
+});
+app.use(sessionMiddleware);
+io.engine.use(sessionMiddleware);
 
 const bcrypt = require("bcrypt");
 const saltRounds = 10;
@@ -23,11 +32,7 @@ const { body } = require('express-validator');
 
 /* import * as db from "./db" */
 
-const { createServer } = require("http");
-const { Server } = require("socket.io");
-app.set("trust proxy", 1); // trust first proxy
-const server = createServer(app);
-const io = new Server(server);
+
 
 const port = process.env.PORT;
 app.use(express.static(path.join(__dirname, "../client/dist"))); 
