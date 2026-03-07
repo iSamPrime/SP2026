@@ -1,28 +1,27 @@
 import Auth from './auth/auth.jsx'
 import Conv from './chat/conv.jsx';
-import { useEffect, useState} from 'react';
+import { useEffect, useState, createContext, useContext } from 'react';
+/* import { theSessio } from './context.js'; */
 
+export default function App({socketIo}) {
+  const [mySession, setMySession] = useState(null)
 
-function App({socketIo}) {
-  const [session0, setSession0] = useState(null)
-
-  useEffect(()=>{
+  useEffect(() => {
     fetch("/session")
-    .then(res=>res.json())
-    .then(session=>setSession0(session));
-    
-  }, [])
-
-
+      .then(res => res.json())
+      .then(session => {
+        setMySession(session);
+      })
+      .catch(err => console.error("fetch error:", err));
+  }, []);
 
 
   return (
-    <>
-      <Auth session0={session0}></Auth>
-      <Conv socketIo = {socketIo} session0={session0}/>
 
+    <>
+      <Auth mySession={mySession}></Auth>
+      <Conv socketIo = {socketIo} mySession={mySession}/>
     </>
+
   )
 }
-
-export default App

@@ -1,22 +1,20 @@
 import { useEffect, useState } from "react"
 import Aform from "./aform"
 
-export default function Auth({session0}){
+export default function Auth({mySession}){
     
     const [email , setEmail] = useState(null)
     const [pw , setPW] = useState(null)
 
     const [onScreen, setOnScreen] = useState("login")
     useEffect(()=>{
-        if (!session0) return;
-        if(session0.loggedIn){
+        if (!mySession) return;
+        if(mySession.loggedIn){
             setOnScreen("logout")
         } else {
             setOnScreen("login")
         }
-    }, [session0])
-    
-
+    }, [mySession])
 
     const buttonCss = `
         w-full text-lg border-2 border-black rounded-lg 
