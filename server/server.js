@@ -42,17 +42,35 @@ app.use(express.static(path.join(__dirname, "../client/dist")));
 io.on("connection", (socket) => {
   console.log(socket.id) //REMOVE
 
-  socket.on("msg", (text)=>{
+  socket.on("msg", (txt)=>{
+    const theSession = socket.request.session
+    const msg = {id: 5, userId: theSession.userId, sender: theSession.email, time: Date.now(), text: txt}
+    msgs.push(msg)
 
-    console.log(text) //REMOVE
-    io.emit("msgback", text);
+    console.log(msg.sender) //REMOVE
+  socket.emit("msgback", msgs);
     
   }) 
+
+  /* io.join("") */
 });
 
 
-const users = [] //REMOVE
-const msgs = [] //REMOVE
+const users = [  //REMOVE
+  {userId: "1772992251900", email:"admin@home.com", password:"$2b$10$bBpjmkZ3IGdIsKos6SXCu.ItI8SMcAMY93gwxEO5gK5lWGchVBkiy"}
+] 
+
+const msgs = [  //REMOVE
+  {id: 1, sender:"banana", time: "1.2", text: " gggggggggggggg gggg ggggggggggggggggggggggggggggggggggggggggggggggggggggg iu hrei greig reh gruigh reghreu rugh orgh reh reouhg ore hroh ", src: "", alt: "GG"},
+  {id: 2, sender:"admin@home.com", time: "1.3",text: "gggggggggggggggggggggggggggggggggggggggggggggggg", src: "", alt: "GG"},
+  {id: 3, sender:"Someone", time: "1.3", text: "gg", src: "", alt: "GG"},
+  {id: 4, sender:"Isac", time: "1.3", text: "gg", src: "", alt: "GG"}
+       
+] 
+
+const rooms = [  //REMOVE
+  {roomId: "room1", created: "234242", admin: "admin@home.com", members:["admin@home.com", "gg@homie.com"]}
+] 
 
 
 function validatEmail(data){
@@ -88,7 +106,7 @@ app.post("/registering",
       userId: userId, email:email, 
       password: password
     }) 
-
+    console.log(users)
     req.session.userId = userId;
     req.session.email = email; 
     req.session.loggedIn = true;
@@ -100,11 +118,11 @@ app.post("/registering",
 
 
   console.log(email, pw) //REMOVE
-  console.log(users)
-  console.log(req.session.email)
-  console.log(req.session.loggedIn)
+  console.log(users) //REMOVE
+  console.log(req.session.email) //REMOVE
+  console.log(req.session.loggedIn) //REMOVE
   
-}) 
+})  
  
 
 app.post("/loggingin",  
