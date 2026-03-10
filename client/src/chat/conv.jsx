@@ -1,3 +1,5 @@
+import dotenv from "dotenv";
+dotenv.config();
 import Msg from './msg.jsx';
 import { useState,  useEffect} from 'react';
 
@@ -5,8 +7,14 @@ import { useState,  useEffect} from 'react';
 export default function Conv({socketIo, mySession}){
     const date = new Date();
     
+    async function getMsgs() {
+        const msgs = await fetch(process.env.URL + "/room/" + roomId)
+    }
+
+
     useEffect(()=>{
         try{
+            
             socketIo.on("connect", () => {
                 socketIo.on("msgback", (msgs)=>{
                     if(socketIo.connected){

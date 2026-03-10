@@ -38,6 +38,23 @@ const port = process.env.PORT;
 app.use(express.static(path.join(__dirname, "../client/dist"))); 
 
 
+app.get("/room/:room_id", (req, res)=>{
+  const email = req.body.email 
+  const userFound = rooms.members.find((e)=>e === email)
+
+  if(!userFound){return res.send("You are not in this room")}
+
+  const roomId = req.params.room_id
+  if(!Number.isInteger(roomId)){return res.send("Someething went wrong..")}
+
+  const messages = []
+  msgs.map((m)=>{
+    if(m.room === roomId){messages.push(m)}
+  })
+
+})
+
+
 
 io.on("connection", (socket) => {
   console.log(socket.id) //REMOVE
@@ -52,7 +69,7 @@ io.on("connection", (socket) => {
     
   }) 
 
-  /* io.join("") */
+
 });
 
 
@@ -61,26 +78,28 @@ const users = [  //REMOVE
 ] 
 
 const msgs = [  //REMOVE
-  {id: 1, sender:"banana", time: "1.2", text: " gggggggggggggg gggg ggggggggggggggggggggggggggggggggggggggggggggggggggggg iu hrei greig reh gruigh reghreu rugh orgh reh reouhg ore hroh ", src: "", alt: "GG"},
-  {id: 2, sender:"admin@home.com", time: "1.3",text: "gggggggggggggggggggggggggggggggggggggggggggggggg", src: "", alt: "GG"},
-  {id: 3, sender:"Someone", time: "1.3", text: "gg", src: "", alt: "GG"},
-  {id: 4, sender:"Isac", time: "1.3", text: "gg", src: "", alt: "GG"}
+  {id: 1, room: 1, sender:"banana", time: "1.2", text: " gggggggggggggg gggg ggggggggggggggggggggggggggggggggggggggggggggggggggggg iu hrei greig reh gruigh reghreu rugh orgh reh reouhg ore hroh ", src: "", alt: "GG"},
+  {id: 2, room: 1, sender:"admin@home.com", time: "1.3",text: "gggggggggggggggggggggggggggggggggggggggggggggggg", src: "", alt: "GG"},
+  {id: 3, room: 2, sender:"Someone", time: "1.3", text: "gg", src: "", alt: "GG"},
+  {id: 4, room: 1, sender:"Isac", time: "1.3", text: "gg", src: "", alt: "GG"}
        
 ] 
 
 const rooms = [  //REMOVE
-  {roomId: "room1", created: "234242", admin: "admin@home.com", members:["admin@home.com", "gg@homie.com"]}
+  {roomId: 1, created: "234242", admin: "admin@home.com", members:["admin@home.com", "gg@homie.com"]},
+  {roomId: 2, created: "658575", admin: "banana@homie.com", members:["admin@home.com", "banana@homie.com"]}
 ] 
 
 
+
+
+/* ----     AUTH     ---- */
 function validatEmail(data){
   return body(data).trim().escape().isEmail().withMessage('Please enter a valid email!')
 }
 function validatPw(data){
   return body(data).trim().escape()
 }
-
-
 
 app.post("/registering", 
   [
@@ -114,16 +133,11 @@ app.post("/registering",
 
     return res.send("Registered")
   }
-
-
-
   console.log(email, pw) //REMOVE
   console.log(users) //REMOVE
   console.log(req.session.email) //REMOVE
   console.log(req.session.loggedIn) //REMOVE
-  
 })  
- 
 
 app.post("/loggingin",  
   [
@@ -153,15 +167,13 @@ app.post("/loggingin",
         //db.query('')
         
         return res.send("loggedIn")
-
       } else {
         res.send("Something went wrong")
       }
 
       console.log(email, pw) //REMOVE
-      console.log(users)
-      console.log(req.session.email)
-      
+      console.log(users) //REMOVE
+      console.log(req.session.email) //REMOVE
     } catch (error){
       console.log(error.message)
     } 
@@ -174,7 +186,6 @@ app.get("/session", (req, res)=>{
     res.json(session0) 
   } 
 })
-
 
 app.get("/logout", (req,res)=>{
     req.session.destroy()
