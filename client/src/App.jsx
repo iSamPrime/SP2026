@@ -1,7 +1,6 @@
 import Auth from './auth/auth.jsx'
 import Conv from './chat/conv.jsx';
-import { useEffect, useState, createContext, useContext } from 'react';
-/* import { theSessio } from './context.js'; */
+import { useEffect, useState } from 'react';
 
 export default function App({socketIo}) {
   const [mySession, setMySession] = useState(null)
@@ -19,8 +18,10 @@ export default function App({socketIo}) {
   return (
 
     <>
+      
       <Auth mySession={mySession}></Auth>
-      <Conv socketIo = {socketIo} mySession={mySession}/>
+      <Conv socketIo = {socketIo} mySession={mySession} roomId={"1"}/>
+
     </>
 
   )

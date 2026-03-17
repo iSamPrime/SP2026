@@ -4,7 +4,7 @@ import '../index.css'
 import App from './App.jsx'
 import { io } from 'socket.io-client'
 
-const socketIo = io()
+const socketIo = io('http://localhost:5555')
 
 
 createRoot(document.getElementById('root')).render(

@@ -1,35 +1,14 @@
-import dotenv from "dotenv";
-dotenv.config();
+
 import Msg from './msg.jsx';
 import { useState,  useEffect} from 'react';
 
 
-export default function Conv({socketIo, mySession}){
+export default function Conv({socketIo, mySession, roomId}){
+
     const date = new Date();
-    
-    async function getMsgs() {
-        const msgs = await fetch(process.env.URL + "/room/" + roomId)
-    }
-
-
-    useEffect(()=>{
-        try{
-            
-            socketIo.on("connect", () => {
-                socketIo.on("msgback", (msgs)=>{
-                    if(socketIo.connected){
-                        setMsgs(msgs)
-                    }
-                })
-            })
-        } catch(error) {
-            console.log(error)
-        }
-    }, [])
-
-    const [msgs, setMsgs] = useState(null)
+    const [msgs, setMsgs] = useState([])
     const [theMsg, setTheMsg] = useState("")
-
+    
     function handleEnter(e){
         try{
           if(e.key === 'Enter' && !e.shiftKey){
@@ -39,7 +18,7 @@ export default function Conv({socketIo, mySession}){
               if(!text) {alert("Empty message"); return}
             
               if(socketIo.connected){
-                  socketIo.emit("msg", text);
+                  socketIo.emit("sendMsg", roomId, text);
                   setTheMsg('');
               } else {
                   alert("Connection lost!"); return;
@@ -48,7 +27,38 @@ export default function Conv({socketIo, mySession}){
         } catch(error) {
           console.log(error)
         }
-    }
+    }    
+
+    useEffect( ()=>{ 
+        try{
+            socketIo.emit("room:join", roomId);
+
+            const handleOldMsgs = (oldMsgs)=>{
+                setMsgs(oldMsgs)
+            } 
+
+            const handleMsg = (msg) => {
+                setMsgs((prev) => [...prev, msg]);
+            };
+
+            socketIo.on("oldMsgs", handleOldMsgs)
+            socketIo.on("msgback", handleMsg);
+
+            
+
+            return () => {
+                socketIo.off("oldMsgs", handleOldMsgs); 
+                socketIo.off("msgback", handleMsg);
+            };
+
+        } catch(error) {
+            console.log(error);
+            setMsgs([]);
+            alert(error)
+        }
+    }, [roomId])
+
+
 
 
     

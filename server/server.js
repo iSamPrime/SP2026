@@ -35,40 +35,50 @@ const { body } = require('express-validator');
 
 
 const port = process.env.PORT;
+
 app.use(express.static(path.join(__dirname, "../client/dist"))); 
 
 
 app.get("/room/:room_id", (req, res)=>{
-  const email = req.body.email 
-  const userFound = rooms.members.find((e)=>e === email)
+  const email = req.session.email 
+  const roomId = parseInt(req.params.room_id)
+  
 
-  if(!userFound){return res.send("You are not in this room")}
+  console.log(roomId)
+  const roomFound = rooms.find((r)=>r.roomId === roomId)
+  console.log(roomFound)
+  if(!roomFound){return res.json({ error: "Room not found" })}
 
-  const roomId = req.params.room_id
-  if(!Number.isInteger(roomId)){return res.send("Someething went wrong..")}
+  console.log(roomFound)
+  const userFound = roomFound.members.includes(email);
+  console.log(userFound)
 
-  const messages = []
-  msgs.map((m)=>{
-    if(m.room === roomId){messages.push(m)}
-  })
+  
+  if(!userFound){return res.json({ error: "You are not in this room" })}
 
+  const messages = msgs.filter((m)=> m.room === roomId)
+
+  res.json(messages)
 })
 
 
 
 io.on("connection", (socket) => {
-  console.log(socket.id) //REMOVE
+  const theSession = socket.request.session
 
-  socket.on("msg", (txt)=>{
-    const theSession = socket.request.session
-    const msg = {id: 5, userId: theSession.userId, sender: theSession.email, time: Date.now(), text: txt}
+  socket.on("room:join", (roomId)=>{
+    socket.join(`room:${roomId}`)
+
+    socket.to(`room:${roomId}`).emit(`room:${roomId}:msgback`, `${theSession.email?.split("@")[0]} connected at: ${new Date()}`)
+  })
+
+  socket.emit("oldMsgs", msgs)
+
+  socket.on("sendMsg", (roomId, text)=>{
+    const msg = {id: new Date(), room: roomId, sender: theSession.email, text: text}
+    io.to(`room:${roomId}`).emit(`msgback`, msg);
     msgs.push(msg)
-
-    console.log(msg.sender) //REMOVE
-  socket.emit("msgback", msgs);
-    
   }) 
-
 
 });
 
@@ -78,16 +88,16 @@ const users = [  //REMOVE
 ] 
 
 const msgs = [  //REMOVE
-  {id: 1, room: 1, sender:"banana", time: "1.2", text: " gggggggggggggg gggg ggggggggggggggggggggggggggggggggggggggggggggggggggggg iu hrei greig reh gruigh reghreu rugh orgh reh reouhg ore hroh ", src: "", alt: "GG"},
-  {id: 2, room: 1, sender:"admin@home.com", time: "1.3",text: "gggggggggggggggggggggggggggggggggggggggggggggggg", src: "", alt: "GG"},
-  {id: 3, room: 2, sender:"Someone", time: "1.3", text: "gg", src: "", alt: "GG"},
-  {id: 4, room: 1, sender:"Isac", time: "1.3", text: "gg", src: "", alt: "GG"}
+  {id: 1, room: 1, sender:"banana", text: " gggggggggggggg gggg ggggggggggggggggggggggggggggggggggggggggggggggggggggg iu hrei greig reh gruigh reghreu rugh orgh reh reouhg ore hroh ", src: "", alt: "GG"},
+  {id: 2, room: 1, sender:"admin@home.com",text: "gggggggggggggggggggggggggggggggggggggggggggggggg", src: "", alt: "GG"},
+  {id: 3, room: 2, sender:"Someone", text: "gg", src: "", alt: "GG"},
+  {id: 4, room: 1, sender:"Isac",  text: "gg", src: "", alt: "GG"}
        
 ] 
 
 const rooms = [  //REMOVE
-  {roomId: 1, created: "234242", admin: "admin@home.com", members:["admin@home.com", "gg@homie.com"]},
-  {roomId: 2, created: "658575", admin: "banana@homie.com", members:["admin@home.com", "banana@homie.com"]}
+  {roomId: 1, created: "234242", admin: "admin@home.com", members:["admin@home.com", "gg@home.com"]},
+  {roomId: 2, created: "658575", admin: "banana@homie.com", members:["admin@home.com", "banana@home.com"]}
 ] 
 
 
@@ -162,7 +172,6 @@ app.post("/loggingin",
       
         req.session.userId = user.userId;
         req.session.email = email; 
-        req.session.pw = user.password;
         req.session.loggedIn = true;
         //db.query('')
         
