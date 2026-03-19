@@ -96,8 +96,8 @@ const msgs = [  //REMOVE
 ] 
 
 const rooms = [  //REMOVE
-  {roomId: 1, created: "234242", admin: "admin@home.com", members:["admin@home.com", "gg@home.com"]},
-  {roomId: 2, created: "658575", admin: "banana@homie.com", members:["admin@home.com", "banana@home.com"]}
+  {roomId: 1, admin: "admin@home.com", members:["admin@home.com", "gg@home.com"]},
+  {roomId: 2, admin: "banana@homie.com", members:["admin@home.com", "banana@home.com"]}
 ] 
 
 

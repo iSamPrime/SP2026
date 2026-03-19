@@ -1,5 +1,6 @@
 import Auth from './auth/auth.jsx'
 import Conv from './chat/conv.jsx';
+import RoomSearch from './chat/RoomSearch.jsx';
 import { useEffect, useState } from 'react';
 
 export default function App({socketIo}) {
@@ -20,8 +21,9 @@ export default function App({socketIo}) {
     <>
       
       <Auth mySession={mySession}></Auth>
+      <RoomSearch/>
       <Conv socketIo = {socketIo} mySession={mySession} roomId={"1"}/>
-
+      
     </>
 
   )

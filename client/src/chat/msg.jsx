@@ -7,8 +7,7 @@ export default function Msg({msgs, mySession}){
         msgs?.map((p) => (
             <div key={p.id} 
                  className={`${(p?.sender === mySession?.email ) ? "bg-blue-100 justify-self-start" :  "bg-green-100" } 
-                 w-9/10 min-h-10 rounded-xl
-                 px-2 py-1
+                 w-9/10 min-h-10 rounded-xl px-2 py-1
                  justify-self-end line-clamp-1000000000
                  `}
             > {console.log(p.email === mySession?.email, mySession?.email)}
