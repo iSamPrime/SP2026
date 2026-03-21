@@ -1,32 +1,18 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 
 export default function RoomSearch({socketIo, mySession}){
     
     const [inputValue, setInputValue] = useState('');
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [members, setMembers] = useState([]);
-    const containerRef = useRef(null);
     const buttonCss = "bg-gray-300 px-1 rounded-s border-2 border-black max-w-20 content-center hover:bg-gray-400 "
 
 
-
-    const memberSuggestions = [
-      'Balham', 'Abbey Wood', 'Addington', 'Brunswick Park', 'Camberwell',
-      'Clapham', 'Croydon', 'Ealing', 'Greenwich', 'Hammersmith'
-    ]; //CHANGE
-
-
-
-    const availableSuggestions = memberSuggestions.filter(memberList => 
-        !members.includes(memberList) && memberList.toLowerCase().includes(inputValue.toLowerCase())
-    );
 
     const handleAddMember = (member) => {
       if (!members.includes(member)) {
         setMembers([...members, member]);
         setInputValue('');
       }
-      setIsDropdownOpen(false);
     };
 
     const handleRemoveMember = (member) => {
@@ -35,7 +21,6 @@ export default function RoomSearch({socketIo, mySession}){
 
     const handleInputChange = (e) => {
       setInputValue(e.target.value);
-      setIsDropdownOpen(true);
     };
 
     const handleKeyDown = (e) => {
@@ -48,20 +33,6 @@ export default function RoomSearch({socketIo, mySession}){
         handleRemoveMember(members[members.length - 1]);
     }
     };
-
-    // Close dropdown when clicking outside
-    useEffect(() => {
-      const handleClickOutside = (e) => {
-        if (containerRef.current && !containerRef.current.contains(e.target)) {
-          setIsDropdownOpen(false);
-        }
-      };
-
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-  
-
 
 return(
     <div className="max-w-90 py-5 bg-white rounded-2xl shadow-lg space-y-6">
@@ -88,18 +59,15 @@ return(
             <h2 className="text-4xl justify-self-center">
                 Create room
             </h2>
+
             <div className="max-w-2xl mx-auto ">
-            <p className="text-md px-2 py-2">Add users (Email): </p>
-                {/* CREATE ROOM */}
+                <p className="text-md px-2 py-2">Add users (Email): </p>
+
                 <div
-                ref={containerRef}
                 className="p-2 space-y-6"
                 >
-
-                    {/* ROOM Selector */}
-                    
                     <div className='relative'>
-                        {/* Tags Container */}
+                        
                         <div className="
                             min-h-12 px-1 py-1 border-2 rounded-lg
                             bg-white border-slate-200 
@@ -127,29 +95,17 @@ return(
                                 value={inputValue}
                                 onChange={handleInputChange}
                                 onKeyDown={handleKeyDown}
-                                onFocus={() => setIsDropdownOpen(true)}
                                 placeholder={members.length === 0 ? 'Type to add members...' : ''}
                                 className="flex-1 min-w-40 outline-none bg-transparent text-slate-900 memberholder-slate-400 text-sm"
                             />
-                            {/* Dropdown Suggestions */}
-                            {isDropdownOpen && availableSuggestions.length > 0 && (
-                            <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-slate-200 rounded-lg shadow-lg z-20 overflow-hidden">
-                            {availableSuggestions.map((member) => (
-                                <button
-                                key={member}
-                                onClick={() => handleAddMember(member)}
-                                className="w-full px-4 py-2.5 text-left text-slate-700 hover:bg-blue-50 hover:text-blue-900 transition-colors text-sm"
-                                >
-                                {member}
-                                </button>
-                            ))}
-                            </div>
-                        )}
                         </div>
+
                     </div>
+
                     <button type='submit' className={buttonCss}>
                         Create
                     </button>
+
                 </div>
             </div>
         </form> 
