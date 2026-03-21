@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function RoomSearch({socketIo, mySession}){
+export default function RoomSearch(){
     
     const [inputValue, setInputValue] = useState('');
     const [members, setMembers] = useState([]);
@@ -19,20 +19,17 @@ export default function RoomSearch({socketIo, mySession}){
       setMembers(members.filter(p => p !== member));
     };
 
-    const handleInputChange = (e) => {
-      setInputValue(e.target.value);
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (inputValue.trim()) {
+                handleAddMember(inputValue.trim());
+            }
+        } else if (e.key === 'Backspace' && !inputValue && members.length > 0) {
+            handleRemoveMember(members[members.length - 1]);
+        }
     };
 
-    const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
-        e.preventDefault();
-        if (inputValue.trim()) {
-        handleAddMember(inputValue.trim());
-        }
-    } else if (e.key === 'Backspace' && !inputValue && members.length > 0) {
-        handleRemoveMember(members[members.length - 1]);
-    }
-    };
 
 return(
     <div className="max-w-90 py-5 bg-white rounded-2xl shadow-lg space-y-6">
@@ -93,7 +90,7 @@ return(
                             <input
                                 type="text"
                                 value={inputValue}
-                                onChange={handleInputChange}
+                                onChange={(e)=>setInputValue(e.target.value)}
                                 onKeyDown={handleKeyDown}
                                 placeholder={members.length === 0 ? 'Type to add members...' : ''}
                                 className="flex-1 min-w-40 outline-none bg-transparent text-slate-900 memberholder-slate-400 text-sm"
