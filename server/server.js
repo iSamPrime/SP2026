@@ -32,34 +32,36 @@ const { body } = require('express-validator');
 
 /* import * as db from "./db" */
 
-
-
 const port = process.env.PORT;
 
 app.use(express.static(path.join(__dirname, "../client/dist"))); 
 
 
-app.get("/room/:room_id", (req, res)=>{
-  const email = req.session.email 
-  const roomId = parseInt(req.params.room_id)
-  
 
-  console.log(roomId)
-  const roomFound = rooms.find((r)=>r.roomId === roomId)
-  console.log(roomFound)
-  if(!roomFound){return res.json({ error: "Room not found" })}
 
-  console.log(roomFound)
-  const userFound = roomFound.members.includes(email);
-  console.log(userFound)
+
+
+app.post("/createRoom", (req, res)=>{
+
+  const emails = req.body.users
 
   
-  if(!userFound){return res.json({ error: "You are not in this room" })}
+  console.log("emails:" + emails)
 
-  const messages = msgs.filter((m)=> m.room === roomId)
+  const toAddUsers = []
 
-  res.json(messages)
+  for (const u of emails){
+    const userFound = users.find((user)=>user.email === u);
+    if(!userFound) return res.json({ error: `User ${u} does not exist` })
+    toAddUsers.push(userFound.email)
+  }
+  
+  console.log("toAddUsers"+toAddUsers)
+
+  res.json(toAddUsers)
+
 })
+
 
 
 
@@ -67,9 +69,19 @@ io.on("connection", (socket) => {
   const theSession = socket.request.session
 
   socket.on("room:join", (roomId)=>{
-    socket.join(`room:${roomId}`)
 
+    const roomFound = rooms.find(r => r.roomId === roomId)
+    if(!roomFound) return (socket.emit("roomError", "The room ID you entered does not exist!"))
+
+    const email = theSession.email 
+    const userFound = roomFound.members.includes(email);
+    if(!userFound) return (socket.emit("roomError", "You are not a member of this room!"))
+
+    socket.join(`room:${roomId}`)
+    socket.emit("oldMsgs", msgs.filter(m => m.room === roomId))
     socket.to(`room:${roomId}`).emit(`room:${roomId}:msgback`, `${theSession.email?.split("@")[0]} connected at: ${new Date()}`)
+    
+
   })
 
   socket.emit("oldMsgs", msgs)
@@ -88,16 +100,16 @@ const users = [  //REMOVE
 ] 
 
 const msgs = [  //REMOVE
-  {id: 1, room: 1, sender:"banana", text: " gggggggggggggg gggg ggggggggggggggggggggggggggggggggggggggggggggggggggggg iu hrei greig reh gruigh reghreu rugh orgh reh reouhg ore hroh ", src: "", alt: "GG"},
-  {id: 2, room: 1, sender:"admin@home.com",text: "gggggggggggggggggggggggggggggggggggggggggggggggg", src: "", alt: "GG"},
-  {id: 3, room: 2, sender:"Someone", text: "gg", src: "", alt: "GG"},
-  {id: 4, room: 1, sender:"Isac",  text: "gg", src: "", alt: "GG"}
+  {id: 1, room: "1", sender:"banana", text: " gggggggggggggg gggg ggggggggggggggggggggggggggggggggggggggggggggggggggggg iu hrei greig reh gruigh reghreu rugh orgh reh reouhg ore hroh ", src: "", alt: "GG"},
+  {id: 2, room: "1", sender:"admin@home.com",text: "gggggggggggggggggggggggggggggggggggggggggggggggg", src: "", alt: "GG"},
+  {id: 3, room: "2", sender:"Someone", text: "gg", src: "", alt: "GG"},
+  {id: 4, room: "1", sender:"Isac",  text: "gg", src: "", alt: "GG"}
        
 ] 
 
 const rooms = [  //REMOVE
-  {roomId: 1, admin: "admin@home.com", members:["admin@home.com", "gg@home.com"]},
-  {roomId: 2, admin: "banana@homie.com", members:["admin@home.com", "banana@home.com"]}
+  {roomId: "1", admin: "admin@home.com", members:["admin@home.com", "gg@home.com"]},
+  {roomId: "2", admin: "banana@homie.com", members:["admin@home.com", "banana@home.com"]}
 ] 
 
 

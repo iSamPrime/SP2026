@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react';
 
 export default function App({socketIo}) {
   const [mySession, setMySession] = useState(null)
+  const [joinedRoom, setJoinedRoom] = useState(null)
+
 
   useEffect(() => {
     fetch("/session")
@@ -15,16 +17,18 @@ export default function App({socketIo}) {
       .catch(err => console.error("fetch error:", err));
   }, []);
 
+  
 
   return (
 
     <>
-      
       <Auth mySession={mySession}></Auth>
-      <RoomSearch/>
-      <Conv socketIo = {socketIo} mySession={mySession} roomId={"1"}/>
+      {joinedRoom ? 
+        <Conv socketIo = {socketIo} mySession={mySession} roomId={joinedRoom} setJoinedRoom={setJoinedRoom}/>
+      :
+        <RoomSearch joinedRoom={joinedRoom} setJoinedRoom={setJoinedRoom} />
+      }
       
     </>
-
   )
 }

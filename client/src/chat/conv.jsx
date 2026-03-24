@@ -3,7 +3,7 @@ import Msg from './msg.jsx';
 import { useState,  useEffect} from 'react';
 
 
-export default function Conv({socketIo, mySession, roomId}){
+export default function Conv({socketIo, mySession, roomId, setJoinedRoom}){
 
     const date = new Date();
     const [msgs, setMsgs] = useState([])
@@ -35,13 +35,20 @@ export default function Conv({socketIo, mySession, roomId}){
 
             const handleOldMsgs = (oldMsgs)=>{
                 setMsgs(oldMsgs)
-            } 
+                console.log(oldMsgs)
+            };
 
             const handleMsg = (msg) => {
                 setMsgs((prev) => [...prev, msg]);
             };
 
-            socketIo.on("oldMsgs", handleOldMsgs)
+            const alertErr = (errorMsg) =>{
+                setJoinedRoom(null)
+                alert(errorMsg)
+            };
+
+            socketIo.on("roomError", alertErr);
+            socketIo.on("oldMsgs", handleOldMsgs);
             socketIo.on("msgback", handleMsg);
 
             
@@ -57,7 +64,6 @@ export default function Conv({socketIo, mySession, roomId}){
             alert(error)
         }
     }, [roomId])
-
 
 
 

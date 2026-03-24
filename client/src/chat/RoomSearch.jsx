@@ -1,8 +1,9 @@
 import { useState } from 'react';
 
-export default function RoomSearch(){
+export default function RoomSearch({joinedRoom,setJoinedRoom}){
     
-    const [inputValue, setInputValue] = useState('');
+    const [createValue, setCreateValue] = useState('');
+    const [joinValue, setJoinValue] = useState('');
     const [members, setMembers] = useState([]);
     const buttonCss = "bg-gray-300 px-1 rounded-s border-2 border-black max-w-20 content-center hover:bg-gray-400 "
 
@@ -11,7 +12,7 @@ export default function RoomSearch(){
     const handleAddMember = (member) => {
       if (!members.includes(member)) {
         setMembers([...members, member]);
-        setInputValue('');
+        setCreateValue('');
       }
     };
 
@@ -22,49 +23,60 @@ export default function RoomSearch(){
     const handleKeyDown = (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
-            if (inputValue.trim()) {
-                handleAddMember(inputValue.trim());
+            if (createValue.trim()) {
+                handleAddMember(createValue.trim());
             }
-        } else if (e.key === 'Backspace' && !inputValue && members.length > 0) {
+        } else if (e.key === 'Backspace' && !createValue && members.length > 0) {
             handleRemoveMember(members[members.length - 1]);
         }
     };
 
+    const handleCreateRoom = () => {
+        fetch('/createRoom', {
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ users: members })
+        })
+        .then(u => console.log(u));
+
+
+    };
 
 return(
     <div className="max-w-90 py-5 bg-white rounded-2xl shadow-lg space-y-6">
-        <form action="/join" method="post" 
-            className="grid grid-row-3 gap-4 m-2"
-        >
+        <div className="grid grid-row-3 gap-4 m-2">
             <h2 className="text-4xl justify-self-center">
                 Enter room ID
             </h2>
             <p className="text-md" >Enter room ID</p>
             <div className="flex">
-                
                 <input 
                     className="w-full border-2 border-gray-600 rounded-lg p-1 text-sm focus:outline-sky-500"
-                    type="number" memberholder="Enter room ID.." name="pw" 
+                    type="number" 
+                    placeholder="Enter room ID.." 
+                    onChange={(e)=>setJoinValue(e.target.value)}
+
                 />
-                <button className={buttonCss + " min-w-20 mx-2"} type='submit'>
+                <button 
+                    className={buttonCss + " min-w-20 mx-2"} type='submit'
+                    onClick={()=>setJoinedRoom(joinValue.toString())}
+                >
                 Join
                 </button>
             </div>
-        </form>
+        </div>
 
-        <form action="create" method="post" className='mt-8'>
+        <div /* action="/createRoom" method="post" */ className='mt-8'>
+
             <h2 className="text-4xl justify-self-center">
                 Create room
             </h2>
-
             <div className="max-w-2xl mx-auto ">
                 <p className="text-md px-2 py-2">Add users (Email): </p>
 
-                <div
-                className="p-2 space-y-6"
-                >
+                <div className="p-2 space-y-6">
+
                     <div className='relative'>
-                        
                         <div className="
                             min-h-12 px-1 py-1 border-2 rounded-lg
                             bg-white border-slate-200 
@@ -89,22 +101,21 @@ return(
                             ))}
                             <input
                                 type="text"
-                                value={inputValue}
-                                onChange={(e)=>setInputValue(e.target.value)}
+                                value={createValue}
+                                onChange={(e)=>setCreateValue(e.target.value)}
                                 onKeyDown={handleKeyDown}
                                 placeholder={members.length === 0 ? 'Type to add members...' : ''}
                                 className="flex-1 min-w-40 outline-none bg-transparent text-slate-900 memberholder-slate-400 text-sm"
                             />
                         </div>
-
                     </div>
-
-                    <button type='submit' className={buttonCss}>
+                    <button type='submit' className={buttonCss} onClick={handleCreateRoom}>
                         Create
                     </button>
 
                 </div>
             </div>
-        </form> 
+
+        </div> 
     </div>)
 }
