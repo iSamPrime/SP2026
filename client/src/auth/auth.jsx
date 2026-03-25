@@ -1,66 +1,92 @@
 import { useEffect, useState } from "react"
 import Aform from "./aform"
 
-export default function Auth({mySession}){
-    
-    const [email , setEmail] = useState(null)
-    const [pw , setPW] = useState(null)
-
+export default function Auth({ mySession }) {
+    const [email, setEmail] = useState(null)
+    const [pw, setPW] = useState(null)
     const [onScreen, setOnScreen] = useState("login")
-    useEffect(()=>{
+
+    useEffect(() => {
         if (!mySession) return;
-        if(mySession.loggedIn){
-            setOnScreen("logout")
-        } else {
-            setOnScreen("login")
-        }
+        setOnScreen(mySession.loggedIn ? "logout" : "login");
     }, [mySession])
 
-    const buttonCss = `
-        w-full text-lg border-2 border-black rounded-lg 
-        hover:bg-sky-400 
-    `
 
-    return(
-        <div
-            className={`
-                grid max-w-90 gap-2 py-2 px-2 border-2 border-red-500 rounded-lg 
-                ${onScreen!="unselected" && onScreen!="logout" ? "auth-grid-area-form" : (onScreen!="logout"? "auth-grid-area" : " auth-grid-area-logout align-center"  ) }`}
-        >
-            {onScreen !=  "logout" ? 
-                <>
-                    <button 
-                        className={`${buttonCss} ${onScreen === "login" &&  "bg-sky-300"} login-button`}
-                        onClick={()=>{if(!(onScreen==="login")){setOnScreen("login")}else{setOnScreen("unselected")}}}
-                    >
-                        Login
-                    </button>
-                    <button 
-                        className={`${buttonCss}  ${onScreen === "register" &&  "bg-sky-300"} register-button`}
-                        onClick={()=>{if(!(onScreen === "register")){setOnScreen("register")}else{setOnScreen("unselected")}}}
-                    >
-                        Register
-                    </button>
-                </>
-            : 
-                (onScreen === "logout" &&
-                    <form action="/logout">
-                        <button className={`${buttonCss} logout-button`} type="submit">Logout</button>
-                    </form>
-                ) 
-            }
+    const toggleButtonBase = "flex-1 text-lg font-medium border-2 py-2 px-4 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2"
 
-            {onScreen === "register" ? 
-                <Aform 
-                    id={"register"} email={email} setEmail={setEmail} pw={pw} setPW={setPW}
-                ></Aform>
-            : 
-                (onScreen === "login" && 
-                    <Aform 
-                        id={"login"} email={email} setEmail={setEmail} pw={pw} setPW={setPW}
-                    ></Aform> 
-                )
-            } 
+    return (
+        <div className="max-w-2xl mx-auto py-8 px-4">
+            <div className="bg-white rounded-2xl shadow-lg p-8 space-y-10">
+                
+                {onScreen !== "logout" ? (
+                    <>
+                        <div className="flex gap-3">
+                            <button 
+                                className={`${toggleButtonBase} ${onScreen === "login" 
+                                    ? "bg-sky-500 text-white border-sky-500 focus:ring-sky-200" 
+                                    : "bg-gray-100 text-gray-600 border-transparent hover:bg-gray-200"}`}
+                                onClick={() => setOnScreen("login")}
+                            >
+                                Login
+                            </button>
+                            <button 
+                                className={`${toggleButtonBase} ${onScreen === "register" 
+                                    ? "bg-sky-500 text-white border-sky-500 focus:ring-sky-200" 
+                                    : "bg-gray-100 text-gray-600 border-transparent hover:bg-gray-200"}`}
+                                onClick={() => setOnScreen("register")}
+                            >
+                                Register
+                            </button>
+                        </div>
+
+                        <div className="relative">
+                            <div className="absolute inset-0 flex items-center">
+                                <div className="w-full border-t border-gray-200"></div>
+                            </div>
+                            <div className="relative flex justify-center text-sm">
+                                <span className="px-4 bg-white text-gray-400 uppercase tracking-widest font-bold text-xs">
+                                    {onScreen}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="space-y-6">
+                            <div className="space-y-2">
+                                <h2 className="text-3xl font-semibold text-center text-gray-800">
+                                    {onScreen === "register" ? "Create Account" : "Welcome Back"}
+                                </h2>
+                                <p className="text-sm text-gray-600 text-center">
+                                    {onScreen === "register" ? "Enter your details to get started" : "Enter your credentials to continue"}
+                                </p>
+                            </div>
+
+                            <Aform 
+                                id={onScreen} 
+                                email={email} 
+                                setEmail={setEmail} 
+                                pw={pw} 
+                                setPW={setPW} 
+                            />
+                        </div>
+                    </>
+                ) : (
+                    /* Logout State */
+                    <div className="space-y-6 text-center">
+                        <div className="space-y-2">
+                            <h2 className="text-3xl font-semibold text-gray-800">Sign Out</h2>
+                            <p className="text-sm text-gray-600">Are you sure you want to logout?</p>
+                        </div>
+                        <form action="/logout">
+                            <button 
+                                className="w-full bg-red-500 text-white border-2 border-red-500 rounded-lg py-3 px-4 font-medium hover:bg-red-600 transition-all focus:ring-2 focus:ring-red-200 outline-none"
+                                type="submit"
+                            >
+                                Logout
+                            </button>
+                        </form>
+                    </div>
+                )}
+            </div>
         </div>
     )
-} 
+}

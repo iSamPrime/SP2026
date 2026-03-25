@@ -41,7 +41,7 @@ app.use(express.static(path.join(__dirname, "../client/dist")));
 
 
 
-app.post("/createRoom", (req, res)=>{
+/* app.post("/createRoom", (req, res)=>{
 
   const emails = req.body.users
 
@@ -52,15 +52,15 @@ app.post("/createRoom", (req, res)=>{
 
   for (const u of emails){
     const userFound = users.find((user)=>user.email === u);
-    if(!userFound) return res.json({ error: `User ${u} does not exist` })
+    if(!userFound) return res.send({status: "Error", msg: `User ${u} does not exist`}) 
     toAddUsers.push(userFound.email)
   }
   
   console.log("toAddUsers"+toAddUsers)
+  rooms.push({roomId: "1", admin: "admin@home.com", members:["admin@home.com", "gg@home.com"]})
+  res.send({status: "Secess", room: `User ${u} does not exist`})
 
-  res.json(toAddUsers)
-
-})
+}) */
 
 
 
@@ -96,7 +96,9 @@ io.on("connection", (socket) => {
 
 
 const users = [  //REMOVE
-  {userId: "1772992251900", email:"admin@home.com", password:"$2b$10$bBpjmkZ3IGdIsKos6SXCu.ItI8SMcAMY93gwxEO5gK5lWGchVBkiy"}
+  {userId: 1772992251900, email: 'admin@home.com', password: '$2b$10$bBpjmkZ3IGdIsKos6SXCu.ItI8SMcAMY93gwxEO5gK5lWGchVBkiy'},
+  {userId: 1774467143323, email: 'banana@home.com', password: '$2b$10$M4APJxU2f4y5cM6QrOufx.7mVsFSBDLxEErU3Xjxdhzel7twpUB2y'},
+  {userId: 1774467243713, email: 'gg@home.com', password: '$2b$10$IcxIrqDcdEzL8Anu0qo2l.TUAgwlz3UHgOiK00sRkZ25thgBsNTc.'},
 ] 
 
 const msgs = [  //REMOVE
@@ -123,7 +125,7 @@ function validatPw(data){
   return body(data).trim().escape()
 }
 
-app.post("/registering", 
+app.post("/register", 
   [
     validatEmail('email'),
     validatPw('pw')
@@ -131,7 +133,7 @@ app.post("/registering",
   (req, res)=>{
   const userId = Date.now();
   const email = req.body.email;
-  const pw = req.body.pw.trim();
+  const pw = req.body.password.trim();
   
   if (req.session.loggedIn) { return res.send("Logout first") } 
   if (!email) { return res.send("Please type an email!") }
@@ -161,7 +163,7 @@ app.post("/registering",
   console.log(req.session.loggedIn) //REMOVE
 })  
 
-app.post("/loggingin",  
+app.post("/login",  
   [
     validatEmail('email'),
     validatPw('pw')
@@ -169,7 +171,7 @@ app.post("/loggingin",
   (req, res)=>{ 
     try{
       const email = req.body.email;
-      const pw = req.body.pw;
+      const pw = req.body.password;
       
       if (req.session.loggedIn) { return res.send("Logout first") } 
       if (!email) { return res.send("Please type an email!") }

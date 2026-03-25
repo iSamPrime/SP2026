@@ -5,6 +5,7 @@ export default function RoomSearch({joinedRoom,setJoinedRoom}){
     const [createValue, setCreateValue] = useState('');
     const [joinValue, setJoinValue] = useState('');
     const [members, setMembers] = useState([]);
+    const [roomName, setRoomName] = useState("");
     const buttonCss = "bg-gray-300 px-1 rounded-s border-2 border-black max-w-20 content-center hover:bg-gray-400 "
 
 
@@ -31,91 +32,116 @@ export default function RoomSearch({joinedRoom,setJoinedRoom}){
         }
     };
 
-    const handleCreateRoom = () => {
-        fetch('/createRoom', {
+    const handleCreateRoom = async () => {
+        const response = await fetch('/createRoom', {
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ users: members })
         })
-        .then(u => console.log(u));
+
+        const data = await response.json();
+        
+        console.log(data);
 
 
     };
 
 return(
-    <div className="max-w-90 py-5 bg-white rounded-2xl shadow-lg space-y-6">
-        <div className="grid grid-row-3 gap-4 m-2">
-            <h2 className="text-4xl justify-self-center">
-                Enter room ID
-            </h2>
-            <p className="text-md" >Enter room ID</p>
-            <div className="flex">
-                <input 
-                    className="w-full border-2 border-gray-600 rounded-lg p-1 text-sm focus:outline-sky-500"
-                    type="number" 
-                    placeholder="Enter room ID.." 
-                    onChange={(e)=>setJoinValue(e.target.value)}
-
-                />
-                <button 
-                    className={buttonCss + " min-w-20 mx-2"} type='submit'
-                    onClick={()=>setJoinedRoom(joinValue.toString())}
-                >
-                Join
-                </button>
+    <div className="max-w-2xl mx-auto py-8 px-4">
+        <div className="bg-white rounded-2xl shadow-lg p-8 space-y-10">
+            {/* Join Room Section */}
+            <div className="space-y-4">
+                <h2 className="text-3xl font-semibold text-center text-gray-800">
+                    Join Room
+                </h2>
+                <p className="text-sm text-gray-600 text-center">
+                    Enter the room ID to join an existing room
+                </p>
+                <div className="flex gap-2">
+                    <input 
+                        className="flex-1 border-2 border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-all"
+                        type="number" 
+                        placeholder="Enter room ID..." 
+                        onChange={(e) => setJoinValue(e.target.value)}
+                    />
+                    <button 
+                        className="max-w-20 bg-gray-800 text-white border-2 border-gray-800 rounded-lg py-3 px-4 font-medium hover:bg-black transition-all focus:ring-2 focus:ring-gray-400 outline-none"
+                        type="submit"
+                        onClick={() => setJoinedRoom(joinValue.toString())}
+                    >
+                        Join
+                    </button>
+                </div>
             </div>
-        </div>
 
-        <div /* action="/createRoom" method="post" */ className='mt-8'>
+            <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-200"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                    <span className="px-4 bg-white text-gray-500">OR</span>
+                </div>
+            </div>
 
-            <h2 className="text-4xl justify-self-center">
-                Create room
-            </h2>
-            <div className="max-w-2xl mx-auto ">
-                <p className="text-md px-2 py-2">Add users (Email): </p>
+            <div className="space-y-4">
+                <h2 className="text-3xl font-semibold text-center text-gray-800">
+                    Create Room
+                </h2>
+                
+                <div className="space-y-4">
+                    <div>
+                        <p className="block text-sm font-medium text-gray-700 mb-2">
+                            Room Name
+                        </p>
+                        <input 
+                            type="text" 
+                            placeholder="Enter room name..." 
+                            value={roomName} 
+                            onChange={(e) => setRoomName(e.target.value)}
+                            className="w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-all" 
+                        />
+                    </div>
 
-                <div className="p-2 space-y-6">
-
-                    <div className='relative'>
-                        <div className="
-                            min-h-12 px-1 py-1 border-2 rounded-lg
-                            bg-white border-slate-200 
-                            focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-200
-                            flex flex-wrap gap-2 items-center"
-                        >
+                    <div>
+                        <p className="block text-sm font-medium text-gray-700 mb-2">
+                            Add Members (Email):
+                        </p>
+                        <div className="min-h-[3rem] px-3 py-2 border-2 rounded-lg bg-white border-gray-300 focus-within:border-sky-500 focus-within:ring-2 focus-within:ring-sky-200 flex flex-wrap gap-2 items-center transition-all">
                             {members.map((member) => (
                                 <div
                                     key={member}
-                                    className="
-                                    flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-200
-                                    bg-slate-100 hover:bg-slate-200 transition-colors group"
+                                    className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 border border-slate-200 hover:bg-slate-200 transition-colors group"
                                 >
                                     <p className="text-sm font-medium text-slate-700">{member}</p>
                                     <button
                                         onClick={() => handleRemoveMember(member)}
-                                        className="text-slate-400 hover:text-slate-600 transition-colors font-semibold"
+                                        className="text-slate-400 hover:text-red-500 transition-colors font-semibold text-lg leading-none"
+                                        aria-label="Remove member"
                                     >
-                                        x
+                                        ×
                                     </button>
                                 </div>
                             ))}
                             <input
                                 type="text"
                                 value={createValue}
-                                onChange={(e)=>setCreateValue(e.target.value)}
+                                onChange={(e) => setCreateValue(e.target.value)}
                                 onKeyDown={handleKeyDown}
-                                placeholder={members.length === 0 ? 'Type to add members...' : ''}
-                                className="flex-1 min-w-40 outline-none bg-transparent text-slate-900 memberholder-slate-400 text-sm"
+                                placeholder={members.length === 0 ? 'Type email and press Enter...' : ''}
+                                className="flex-1 min-w-[12rem] outline-none bg-transparent text-slate-900 placeholder-slate-400 text-sm px-1"
                             />
                         </div>
                     </div>
-                    <button type='submit' className={buttonCss} onClick={handleCreateRoom}>
-                        Create
-                    </button>
 
+                    <button 
+                        type="submit" 
+                        className="w-full bg-gray-800 text-white border-2 border-gray-800 rounded-lg py-3 px-4 font-medium hover:bg-black transition-all focus:ring-2 focus:ring-gray-400 outline-none" 
+                        onClick={handleCreateRoom}
+                    >
+                        Create Room
+                    </button>
                 </div>
             </div>
-
-        </div> 
+        </div>
     </div>)
 }

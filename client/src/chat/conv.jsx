@@ -1,4 +1,3 @@
-
 import Msg from './msg.jsx';
 import { useState,  useEffect} from 'react';
 
@@ -70,20 +69,20 @@ export default function Conv({socketIo, mySession, roomId, setJoinedRoom}){
     
 
     return(
-        <div 
-            className="grid max-w-90 
-            bg-gray-600 border-2 border-black rounded-xl p-1
-            gap-2"
-        >
-            <Msg msgs={msgs} mySession={mySession} />
-            <textarea 
-                type="text" value={theMsg} 
-                onChange={(e) => setTheMsg(e.target.value)} 
-                onKeyDown={handleEnter}
-                placeholder='Type here..'
-                className='bg-gray-500 rounded-xl border-1 border-black px-2 py-1 h-16 focus:outline-sky-500'
-            ></textarea>
-
+        <div className="max-w-2xl mx-auto py-8 px-4 ">
+            <div className="bg-white rounded-2xl shadow-lg p-8 space-y-4 ">
+                <Msg msgs={msgs} mySession={mySession} />
+                <textarea 
+                    type="text" 
+                    value={theMsg} 
+                    onChange={(e) => setTheMsg(e.target.value)} 
+                    onKeyDown={handleEnter}
+                    placeholder='Type your message...'
+                    className='w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 text-sm 
+                    focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 
+                    transition-all resize-none'
+                />
+            </div>
         </div>
     )
 }

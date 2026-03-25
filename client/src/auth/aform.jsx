@@ -1,45 +1,44 @@
+export default function Aform({ id, email, setEmail, pw, setPW }) {
+    
+    const inputStyle = "w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-all"
+    const pStyle = "block text-sm font-medium text-gray-700 mb-2"
 
+    return (
+        <form className="space-y-5" action={`/${id}`} method="POST">
+            <div>
+                <p className={pStyle}>Email Address</p>
+                <input 
+                    type="email" 
+                    name="email"
+                    required
+                    placeholder="name@example.com"
+                    value={email} 
+                    onChange={(e) => setEmail(e.target.value)}
+                    className={inputStyle}
+                />
+            </div>
 
-export default function Aform({id, email, pw, setEmail, setPW}){
+            <div>
+                <p className={pStyle}>Password</p>
+                <input 
+                    type="password" 
+                    name="password"
+                    required
+                    placeholder="Password"
+                    value={pw} 
+                    onChange={(e) => setPW(e.target.value)}
+                    className={inputStyle}
+                />
+            </div>
 
-const inputCss = " w-full border-2 border-gray-600 rounded-lg p-1 text-sm focus:outline-sky-500" 
-const pCss = "text-md" 
-const divCss = " "
- 
-    return(
-        <div className="max-w-90 py-5 Aform">
-            <h2 className="text-4xl justify-self-center">
-                {id === "register" ? "Register" : (id  === "login" ? "Login" : "Afrom id error")}
-            </h2>
-            <form 
-                action={id==="login" ? "/loggingin" : "/registering"} method="post" 
-                className="grid grid-row-3 gap-4 m-2"
-            >
-                
-                <div className={divCss}>
-                    <p className={pCss}>Email</p>
-                    <input 
-                        className={inputCss}
-                        type="email" placeholder="Email.." name="email"
-                        onChange={(e)=>setEmail(e.target.value)} value={email}
-                    />
-                </div>
-                
-                <div className={divCss}>
-                    <p className={pCss} >Password</p>
-                    <input 
-                        className={inputCss}
-                        type="password" placeholder="Password.." name="pw" 
-                        onChange={(e)=>setPW(e.target.value)} value={pw} 
-                    />
-                </div>
-
-                <button type="submit"
-                        className="bg-gray-300 px-1 rounded-s border-2 border-black max-w-20 content-center hover:bg-gray-400"        
-                >{id === "register" ? "Register" : (id  === "login" ? "Login" : "Afrom id error")}</button>
-            
-            </form>
-            
-        </div>
+            <div className="pt-2">
+                <button 
+                    type="submit" 
+                    className="w-full bg-gray-800 text-white border-2 border-gray-800 rounded-lg py-3 px-4 font-medium hover:bg-black transition-all focus:ring-2 focus:ring-gray-400 outline-none"
+                >
+                    {id === "login" ? "Sign In" : "Create Account"}
+                </button>
+            </div>
+        </form>
     )
 } 
