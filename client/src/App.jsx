@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 export default function App({socketIo}) {
   const [mySession, setMySession] = useState(null)
   const [joinedRoom, setJoinedRoom] = useState(null)
+  const [roomName, setRoomName] = useState("");
 
 
   useEffect(() => {
@@ -24,9 +25,19 @@ export default function App({socketIo}) {
     <>
       <Auth mySession={mySession}></Auth>
       {joinedRoom ? 
-        <Conv socketIo = {socketIo} mySession={mySession} roomId={joinedRoom} setJoinedRoom={setJoinedRoom}/>
+        <Conv 
+          socketIo = {socketIo} 
+          mySession={mySession} 
+          roomId={joinedRoom} 
+          setJoinedRoom={setJoinedRoom}
+          roomName={roomName}
+          />
       :
-        <RoomSearch joinedRoom={joinedRoom} setJoinedRoom={setJoinedRoom} />
+        <RoomSearch 
+        setJoinedRoom={setJoinedRoom} 
+        setRoomName={setRoomName}
+        roomName={roomName}
+        />
       }
       
     </>

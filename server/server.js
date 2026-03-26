@@ -41,10 +41,16 @@ app.use(express.static(path.join(__dirname, "../client/dist")));
 
 
 
-/* app.post("/createRoom", (req, res)=>{
 
+/* ----   Socket.io   &   Rooms   ---- */
+
+
+
+
+app.post("/createRoom", [validatData('roomName')], (req, res)=>{
+  const roomName = req.body.roomName
   const emails = req.body.users
-
+  const creator = req.session.email
   
   console.log("emails:" + emails)
 
@@ -56,11 +62,12 @@ app.use(express.static(path.join(__dirname, "../client/dist")));
     toAddUsers.push(userFound.email)
   }
   
-  console.log("toAddUsers"+toAddUsers)
-  rooms.push({roomId: "1", admin: "admin@home.com", members:["admin@home.com", "gg@home.com"]})
-  res.send({status: "Secess", room: `User ${u} does not exist`})
+  console.log("toAddUsers "+toAddUsers)
+  const roomId = Date.now()
+  rooms.push({roomId: roomId.toString(), roomName: roomName, admin: creator, members: toAddUsers})
+  res.send({status: "Secess", roomId: roomId, roomName: roomName})
 
-}) */
+})
 
 
 
@@ -69,8 +76,8 @@ io.on("connection", (socket) => {
   const theSession = socket.request.session
 
   socket.on("room:join", (roomId)=>{
-
-    const roomFound = rooms.find(r => r.roomId === roomId)
+    console.log(rooms)
+    const roomFound = rooms.find(r => r.roomId == roomId)
     if(!roomFound) return (socket.emit("roomError", "The room ID you entered does not exist!"))
 
     const email = theSession.email 
@@ -78,7 +85,7 @@ io.on("connection", (socket) => {
     if(!userFound) return (socket.emit("roomError", "You are not a member of this room!"))
 
     socket.join(`room:${roomId}`)
-    socket.emit("oldMsgs", msgs.filter(m => m.room === roomId))
+    socket.emit("oldMsgs", msgs.filter(m => m.room == roomId))
     socket.to(`room:${roomId}`).emit(`room:${roomId}:msgback`, `${theSession.email?.split("@")[0]} connected at: ${new Date()}`)
     
 
@@ -106,34 +113,39 @@ const msgs = [  //REMOVE
   {id: 2, room: "1", sender:"admin@home.com",text: "gggggggggggggggggggggggggggggggggggggggggggggggg", src: "", alt: "GG"},
   {id: 3, room: "2", sender:"Someone", text: "gg", src: "", alt: "GG"},
   {id: 4, room: "1", sender:"Isac",  text: "gg", src: "", alt: "GG"}
-       
+  
 ] 
 
 const rooms = [  //REMOVE
-  {roomId: "1", admin: "admin@home.com", members:["admin@home.com", "gg@home.com"]},
-  {roomId: "2", admin: "banana@homie.com", members:["admin@home.com", "banana@home.com"]}
+  {roomId: "1", roomName: "1", admin: "admin@home.com", members:["admin@home.com", "gg@home.com"]},
+  {roomId: "2", roomName: "2", admin: "banana@homie.com", members:["admin@home.com", "banana@home.com"]}
 ] 
 
 
 
 
-/* ----     AUTH     ---- */
+/* ----     AUTH  &  Security    ---- */
 function validatEmail(data){
   return body(data).trim().escape().isEmail().withMessage('Please enter a valid email!')
 }
-function validatPw(data){
+function validatData(data){
   return body(data).trim().escape()
+}
+
+function authMw(req, res, next){
+  if(!req.session.loggedIn) return res.redirect("/Not_logged_in")
+  next()
 }
 
 app.post("/register", 
   [
     validatEmail('email'),
-    validatPw('pw')
+    validatData('pw')
   ],
   (req, res)=>{
   const userId = Date.now();
   const email = req.body.email;
-  const pw = req.body.password.trim();
+  const pw = req.body.password;
   
   if (req.session.loggedIn) { return res.send("Logout first") } 
   if (!email) { return res.send("Please type an email!") }
@@ -157,16 +169,12 @@ app.post("/register",
 
     return res.send("Registered")
   }
-  console.log(email, pw) //REMOVE
-  console.log(users) //REMOVE
-  console.log(req.session.email) //REMOVE
-  console.log(req.session.loggedIn) //REMOVE
 })  
 
 app.post("/login",  
   [
     validatEmail('email'),
-    validatPw('pw')
+    validatData('pw')
   ], 
   (req, res)=>{ 
     try{
@@ -190,13 +198,13 @@ app.post("/login",
         //db.query('')
         
         return res.send("loggedIn")
+
       } else {
         res.send("Something went wrong")
       }
 
-      console.log(email, pw) //REMOVE
-      console.log(users) //REMOVE
-      console.log(req.session.email) //REMOVE
+
+
     } catch (error){
       console.log(error.message)
     } 
@@ -211,8 +219,8 @@ app.get("/session", (req, res)=>{
 })
 
 app.get("/logout", (req,res)=>{
-    req.session.destroy()
-    res.redirect("/")
+  req.session.destroy()
+  res.redirect("/")
 })
 
  

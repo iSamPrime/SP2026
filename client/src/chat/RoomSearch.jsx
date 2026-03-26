@@ -1,13 +1,10 @@
 import { useState } from 'react';
 
-export default function RoomSearch({joinedRoom,setJoinedRoom}){
+export default function RoomSearch({ setJoinedRoom, setRoomName, roomName}){
     
     const [createValue, setCreateValue] = useState('');
     const [joinValue, setJoinValue] = useState('');
     const [members, setMembers] = useState([]);
-    const [roomName, setRoomName] = useState("");
-    const buttonCss = "bg-gray-300 px-1 rounded-s border-2 border-black max-w-20 content-center hover:bg-gray-400 "
-
 
 
     const handleAddMember = (member) => {
@@ -36,13 +33,14 @@ export default function RoomSearch({joinedRoom,setJoinedRoom}){
         const response = await fetch('/createRoom', {
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ users: members })
+            body: JSON.stringify({ roomName: roomName, users: members })
         })
 
         const data = await response.json();
         
-        console.log(data);
-
+        console.log(data.roomId);
+        await setRoomName(data.roomName)
+        await setJoinedRoom(data.roomId)
 
     };
 
@@ -60,7 +58,7 @@ return(
                 <div className="flex gap-2">
                     <input 
                         className="flex-1 border-2 border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-all"
-                        type="number" 
+                        type="" 
                         placeholder="Enter room ID..." 
                         onChange={(e) => setJoinValue(e.target.value)}
                     />

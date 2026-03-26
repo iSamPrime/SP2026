@@ -2,7 +2,7 @@ import Msg from './msg.jsx';
 import { useState,  useEffect} from 'react';
 
 
-export default function Conv({socketIo, mySession, roomId, setJoinedRoom}){
+export default function Conv({socketIo, mySession, roomId, setJoinedRoom, roomName}){
 
     const date = new Date();
     const [msgs, setMsgs] = useState([])
@@ -71,6 +71,7 @@ export default function Conv({socketIo, mySession, roomId, setJoinedRoom}){
     return(
         <div className="max-w-2xl mx-auto py-8 px-4 ">
             <div className="bg-white rounded-2xl shadow-lg p-8 space-y-4 ">
+                <p>{roomName}</p>
                 <Msg msgs={msgs} mySession={mySession} />
                 <textarea 
                     type="text" 
