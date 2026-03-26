@@ -64,7 +64,7 @@ app.post("/createRoom", [validatData('roomName')], (req, res)=>{
   
   console.log("toAddUsers "+toAddUsers)
   const roomId = Date.now()
-  rooms.push({roomId: roomId.toString(), roomName: roomName, admin: creator, members: toAddUsers})
+  rooms.push({roomId: roomId.toString(), roomName: roomName.toString(), admin: creator, members: toAddUsers})
   res.send({status: "Secess", roomId: roomId, roomName: roomName})
 
 })
@@ -74,6 +74,31 @@ app.post("/createRoom", [validatData('roomName')], (req, res)=>{
 
 io.on("connection", (socket) => {
   const theSession = socket.request.session
+
+  socket.on("creRoom", (reqRoom)=>{
+    const roomName = reqRoom.roomName
+    const emails = reqRoom.users
+    const creator = theSession.email
+    
+    console.log("emails:" + emails)
+
+    const toAddUsers = []
+
+    for (const u of emails){
+      const userFound = users.find((user)=>user.email === u);
+      if(!userFound) return socket.emit("crtdRoom", {status: "Error", msg: `User ${u} does not exist`}) 
+      toAddUsers.push(userFound.email)
+    }
+
+    toAddUsers.push(creator)
+    
+
+    const roomId = Date.now()
+    rooms.push({roomId: roomId.toString(), roomName: roomName.toString(), admin: creator, members: toAddUsers})
+
+    socket.emit("crtdRoom", {status: "Success", roomId: roomId, roomName: roomName})
+  })
+
 
   socket.on("room:join", (roomId)=>{
     console.log(rooms)
@@ -197,7 +222,7 @@ app.post("/login",
         req.session.loggedIn = true;
         //db.query('')
         
-        return res.send("loggedIn")
+        return res.redirect("/")
 
       } else {
         res.send("Something went wrong")
@@ -214,8 +239,10 @@ app.post("/login",
 app.get("/session", (req, res)=>{
   const session0 = req.session
   if(req.session.userId) {
-    res.json(session0) 
-  } 
+    res.json({status: "Session", session: session0}) 
+  } else {
+    res.json({status: "No session"})
+  }
 })
 
 app.get("/logout", (req,res)=>{

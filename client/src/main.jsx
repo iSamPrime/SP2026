@@ -2,14 +2,25 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import '../index.css'
 import App from './App.jsx'
-import { io } from 'socket.io-client'
+import Auth from './auth/auth.jsx'
 
-const socketIo = io('http://localhost:5555')
+
+/* 
+
+
+
+createRoot(document.getElementById('auth')).render(
+  <StrictMode>
+    <Auth />
+  </StrictMode>
+)
+
+*/
 
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App socketIo = {socketIo}/>
+    <App />
   </StrictMode>
 )
 

@@ -1,45 +1,42 @@
-import Auth from './auth/auth.jsx'
-import Conv from './chat/conv.jsx';
-import RoomSearch from './chat/RoomSearch.jsx';
 import { useEffect, useState } from 'react';
+import Auth from './auth/auth.jsx'
+import Home from './Home.jsx';
 
-export default function App({socketIo}) {
+export default function App() {
+  const [activeTap, setActiveTap] = useState("auth")
   const [mySession, setMySession] = useState(null)
-  const [joinedRoom, setJoinedRoom] = useState(null)
-  const [roomName, setRoomName] = useState("");
+
 
 
   useEffect(() => {
     fetch("/session")
       .then(res => res.json())
-      .then(session => {
-        setMySession(session);
+      .then(res => {
+        if(res.status === "Session"){
+          setMySession(res.session);
+          setActiveTap("Home")
+        } else {
+          setActiveTap("Auth")
+        }
       })
       .catch(err => console.error("fetch error:", err));
   }, []);
 
-  
-
   return (
 
     <>
-      <Auth mySession={mySession}></Auth>
-      {joinedRoom ? 
-        <Conv 
-          socketIo = {socketIo} 
-          mySession={mySession} 
-          roomId={joinedRoom} 
-          setJoinedRoom={setJoinedRoom}
-          roomName={roomName}
-          />
-      :
-        <RoomSearch 
-        setJoinedRoom={setJoinedRoom} 
-        setRoomName={setRoomName}
-        roomName={roomName}
-        />
+      {
+        activeTap === "Auth" ? 
+        <Auth mySession={mySession} ></Auth>
+        : (activeTap === "Home" ? 
+          <Home mySession={mySession} ></Home>
+          : 
+          "App page error"
+        )
       }
-      
     </>
   )
 }
+
+
+

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function RoomSearch({ setJoinedRoom, setRoomName, roomName}){
+export default function RoomSearch({ setJoinedRoom, setRoomName, roomName, socketIo}){
     
     const [createValue, setCreateValue] = useState('');
     const [joinValue, setJoinValue] = useState('');
@@ -29,18 +29,19 @@ export default function RoomSearch({ setJoinedRoom, setRoomName, roomName}){
         }
     };
 
-    const handleCreateRoom = async () => {
-        const response = await fetch('/createRoom', {
-            method: 'POST', 
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ roomName: roomName, users: members })
-        })
+    const handleCreateRoom = () => {
+        socketIo.emit("creRoom", { roomName: roomName, users: members })
 
-        const data = await response.json();
-        
-        console.log(data.roomId);
-        await setRoomName(data.roomName)
-        await setJoinedRoom(data.roomId)
+        socketIo.on("crtdRoom",(room)=>{
+            if(room.status === "Error"){
+                alert(room.msg)
+            } else if(room.status === "Success"){
+                setRoomName(room.roomName)
+                setJoinedRoom(room.roomId)
+            }
+
+        })
+    
 
     };
 
