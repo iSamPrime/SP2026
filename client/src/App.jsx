@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import Auth from './auth/auth.jsx'
-import Home from './Home.jsx';
+import Home from './auth/Home/Home.jsx';
 
 export default function App() {
   const [activeTap, setActiveTap] = useState(1)
