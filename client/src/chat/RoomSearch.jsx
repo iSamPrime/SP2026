@@ -48,7 +48,7 @@ export default function RoomSearch({ setJoinedRoom, setRoomName, roomName, socke
 return(
     <div className="max-w-2xl mx-auto py-8 px-4">
         <div className="bg-white rounded-2xl shadow-lg p-8 space-y-10">
-            {/* Join Room Section */}
+
             <div className="space-y-4">
                 <h2 className="text-3xl font-semibold text-center text-gray-800">
                     Join Room
@@ -115,7 +115,6 @@ return(
                                     <button
                                         onClick={() => handleRemoveMember(member)}
                                         className="text-slate-400 hover:text-red-500 transition-colors font-semibold text-lg leading-none"
-                                        aria-label="Remove member"
                                     >
                                         ×
                                     </button>

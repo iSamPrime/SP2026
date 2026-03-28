@@ -44,34 +44,6 @@ app.use(express.static(path.join(__dirname, "../client/dist")));
 
 /* ----   Socket.io   &   Rooms   ---- */
 
-
-
-
-app.post("/createRoom", [validatData('roomName')], (req, res)=>{
-  const roomName = req.body.roomName
-  const emails = req.body.users
-  const creator = req.session.email
-  
-  console.log("emails:" + emails)
-
-  const toAddUsers = []
-
-  for (const u of emails){
-    const userFound = users.find((user)=>user.email === u);
-    if(!userFound) return res.send({status: "Error", msg: `User ${u} does not exist`}) 
-    toAddUsers.push(userFound.email)
-  }
-  
-  console.log("toAddUsers "+toAddUsers)
-  const roomId = Date.now()
-  rooms.push({roomId: roomId.toString(), roomName: roomName.toString(), admin: creator, members: toAddUsers})
-  res.send({status: "Secess", roomId: roomId, roomName: roomName})
-
-})
-
-
-
-
 io.on("connection", (socket) => {
   const theSession = socket.request.session
 
@@ -80,18 +52,15 @@ io.on("connection", (socket) => {
     const emails = reqRoom.users
     const creator = theSession.email
     
-    console.log("emails:" + emails)
-
     const toAddUsers = []
 
     for (const u of emails){
-      const userFound = users.find((user)=>user.email === u);
+      const userFound = users.find((user)=>user.email === u); //EDITE
       if(!userFound) return socket.emit("crtdRoom", {status: "Error", msg: `User ${u} does not exist`}) 
-      toAddUsers.push(userFound.email)
+      toAddUsers.push(userFound.email) //EDITE
     }
 
-    toAddUsers.push(creator)
-    
+    toAddUsers.push(creator) 
 
     const roomId = Date.now()
     rooms.push({roomId: roomId.toString(), roomName: roomName.toString(), admin: creator, members: toAddUsers})
@@ -102,15 +71,15 @@ io.on("connection", (socket) => {
 
   socket.on("room:join", (roomId)=>{
     console.log(rooms)
-    const roomFound = rooms.find(r => r.roomId == roomId)
+    const roomFound = rooms.find(r => r.roomId == roomId) //EDITE
     if(!roomFound) return (socket.emit("roomError", "The room ID you entered does not exist!"))
 
     const email = theSession.email 
-    const userFound = roomFound.members.includes(email);
+    const userFound = roomFound.members.includes(email); //EDITE
     if(!userFound) return (socket.emit("roomError", "You are not a member of this room!"))
 
     socket.join(`room:${roomId}`)
-    socket.emit("oldMsgs", msgs.filter(m => m.room == roomId))
+    socket.emit("oldMsgs", msgs.filter(m => m.room == roomId))  //EDITE
     socket.to(`room:${roomId}`).emit(`room:${roomId}:msgback`, `${theSession.email?.split("@")[0]} connected at: ${new Date()}`)
     
 
@@ -121,7 +90,7 @@ io.on("connection", (socket) => {
   socket.on("sendMsg", (roomId, text)=>{
     const msg = {id: new Date(), room: roomId, sender: theSession.email, text: text}
     io.to(`room:${roomId}`).emit(`msgback`, msg);
-    msgs.push(msg)
+    msgs.push(msg) //EDITE
   }) 
 
 });

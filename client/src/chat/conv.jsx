@@ -2,7 +2,7 @@ import Msg from './msg.jsx';
 import { useState,  useEffect} from 'react';
 
 
-export default function Conv({socketIo, mySession, roomId, setJoinedRoom, roomName}){
+export default function Conv({socketIo, mySession, roomId, setJoinedRoom, roomName, setActiveTap}){
 
     const date = new Date();
     const [msgs, setMsgs] = useState([])
@@ -28,8 +28,15 @@ export default function Conv({socketIo, mySession, roomId, setJoinedRoom, roomNa
         }
     }    
 
+    function exitRoom(){
+        setActiveTap(1)
+        setJoinedRoom(null)
+    }
+
     useEffect( ()=>{ 
         try{
+            setActiveTap(11)
+
             socketIo.emit("room:join", roomId);
 
             const handleOldMsgs = (oldMsgs)=>{
@@ -70,8 +77,18 @@ export default function Conv({socketIo, mySession, roomId, setJoinedRoom, roomNa
 
     return(
         <div className="max-w-2xl mx-auto py-8 px-4 ">
+
             <div className="bg-white rounded-2xl shadow-lg p-8 space-y-4 ">
-                <p>{roomName}</p>
+                <div className="flex justify-between items-center">
+                    <h2 className="font-bold text-2xl">{roomName || "Room Name"}</h2>
+                    <button
+                        onClick={() => exitRoom()}
+                        aria-label="Leave room"
+                        className="text-slate-400 hover:text-red-500 transition-colors font-bold text-3xl leading-none"
+                    >
+                        ×
+                    </button>
+                </div>
                 <Msg msgs={msgs} mySession={mySession} />
                 <textarea 
                     type="text" 

@@ -3,7 +3,7 @@ import Auth from './auth/auth.jsx'
 import Home from './Home.jsx';
 
 export default function App() {
-  const [activeTap, setActiveTap] = useState("auth")
+  const [activeTap, setActiveTap] = useState(1)
   const [mySession, setMySession] = useState(null)
 
 
@@ -14,28 +14,25 @@ export default function App() {
       .then(res => {
         if(res.status === "Session"){
           setMySession(res.session);
-          setActiveTap("Home")
+          setActiveTap(1)
         } else {
-          setActiveTap("Auth")
+          setActiveTap(0)
         }
       })
       .catch(err => console.error("fetch error:", err));
   }, []);
 
-  return (
-
-    <>
-      {
-        activeTap === "Auth" ? 
-        <Auth mySession={mySession} ></Auth>
-        : (activeTap === "Home" ? 
-          <Home mySession={mySession} ></Home>
-          : 
-          "App page error"
-        )
-      }
-    </>
-  )
+  return (<>
+    {
+      activeTap === 0 ? 
+      <Auth mySession={mySession} ></Auth>
+      : (activeTap > 0  ? 
+        <Home mySession={mySession} activeTap={activeTap} setActiveTap={setActiveTap}></Home>
+        : 
+        "App page error"
+      )
+    }
+  </>)
 }
 
 
