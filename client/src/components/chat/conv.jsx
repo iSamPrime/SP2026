@@ -2,7 +2,7 @@ import Msg from './msg.jsx';
 import { useState,  useEffect} from 'react';
 
 
-export default function Conv({socketIo, mySession, roomId, setJoinedRoom, roomName, setActiveTap}){
+export default function Conv({socketIo, mySession, roomId, setJoinedRoom, setActiveTap}){
 
     const date = new Date();
     const [msgs, setMsgs] = useState([])

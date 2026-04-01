@@ -1,17 +1,19 @@
 import { useState } from 'react';
 import { io } from 'socket.io-client'
-import Conv from '../../chat/conv.jsx';
-import Header from './Header.jsx';
-import RoomSearch from '../../chat/RoomSearch.jsx';
-import DashBoard from '../../DropMenu.jsx/DashBoard.jsx';
-import Profile from '../../DropMenu.jsx/profile.jsx';
-import Settings from '../../DropMenu.jsx/Settings.jsx';
-import Auth from '../auth.jsx';
 const socketIo = io('http://localhost:5555')
 
+import Conv from '../chat/conv.jsx';
+import Header from './Header.jsx';
+import RoomSearch from '../chat/RoomSearch.jsx';
+import DashBoard from '../DropMenu.jsx/DashBoard.jsx';
+import Profile from '../DropMenu.jsx/Profile.jsx';
+import Settings from '../DropMenu.jsx/Settings.jsx';
+import Auth from '../auth/auth.jsx';
 
 
-export default function Home({mySession,activeTap,setActiveTap}){
+
+
+export default function Home({mySession, activeTap, setActiveTap}){
 
     const [joinedRoom, setJoinedRoom] = useState(null)
     const [roomName, setRoomName] = useState("");
@@ -38,6 +40,8 @@ return (<>
         activeTap={activeTap} 
         exitRoom={exitRoom} 
         mySession={mySession}
+        
+
     />
 
     <div className="max-w-2xl mx-auto py-8 px-4 ">
@@ -64,21 +68,16 @@ return (<>
             </div>   
         } 
 
-        {
-            activeTap === 21 ? 
-                <Profile/>
-            : (activeTap === 22 ? 
-                <DashBoard/>
-                : (activeTap === 23 ?
-                    <Settings/>
-                    : (activeTap === 24 && 
-                            <Auth mySession={mySession}/>   
-                    )
-                )
-            )
-        } 
 
         <div className="bg-white rounded-2xl shadow-lg p-8 py-4 ">      
+            { 
+            (activeTap === 21 && <Profile/>) || 
+            (activeTap === 22 && <DashBoard socketIo={socketIo} />) || 
+            (activeTap === 23 && <Settings/>) || 
+            (activeTap === 24 && <Auth mySession={mySession}/> ) ||
+            console.log(activeTap)
+            }
+
             {joinedRoom ?    
                 <Conv /* 11 */
                 socketIo = {socketIo} 

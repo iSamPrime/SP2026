@@ -47,6 +47,24 @@ app.use(express.static(path.join(__dirname, "../client/dist")));
 io.on("connection", (socket) => {
   const theSession = socket.request.session
 
+
+  // Get my rooms 
+  socket.on("reqMyRooms", ()=>{
+    const user = theSession.email
+    const myRooms = rooms.filter((room)=>room.admin === user) //Edit
+
+
+    socket.emit("resMyRooms", myRooms)
+  })
+
+  // Update my rooms
+  socket.on("updateRoom", (req)=>{
+    const theRoom = rooms.find(room=>room.roomId === req.roomId) //Edit
+    rooms.find((room)=>room.roomId === req.roomId) //Edit
+
+  })
+
+  // Create Room
   socket.on("creRoom", (reqRoom)=>{
     const roomName = reqRoom.roomName
     const emails = reqRoom.users
@@ -68,7 +86,7 @@ io.on("connection", (socket) => {
     socket.emit("crtdRoom", {status: "Success", roomId: roomId, roomName: roomName})
   })
 
-
+  // Join Room
   socket.on("room:join", (roomId)=>{
     console.log(rooms)
     const roomFound = rooms.find(r => r.roomId == roomId) //EDITE
@@ -85,7 +103,7 @@ io.on("connection", (socket) => {
 
   })
 
-  socket.emit("oldMsgs", msgs)
+  // Recive and send messeges 
 
   socket.on("sendMsg", (roomId, text)=>{
     const msg = {id: new Date(), room: roomId, sender: theSession.email, text: text}
@@ -96,13 +114,24 @@ io.on("connection", (socket) => {
 });
 
 
-const users = [  //REMOVE
+
+
+
+
+
+
+
+
+
+
+
+let users = [  //REMOVE
   {userId: 1772992251900, email: 'admin@home.com', password: '$2b$10$bBpjmkZ3IGdIsKos6SXCu.ItI8SMcAMY93gwxEO5gK5lWGchVBkiy'},
   {userId: 1774467143323, email: 'banana@home.com', password: '$2b$10$M4APJxU2f4y5cM6QrOufx.7mVsFSBDLxEErU3Xjxdhzel7twpUB2y'},
   {userId: 1774467243713, email: 'gg@home.com', password: '$2b$10$IcxIrqDcdEzL8Anu0qo2l.TUAgwlz3UHgOiK00sRkZ25thgBsNTc.'},
 ] 
 
-const msgs = [  //REMOVE
+let msgs = [  //REMOVE
   {id: 1, room: "1", sender:"banana", text: " gggggggggggggg gggg ggggggggggggggggggggggggggggggggggggggggggggggggggggg iu hrei greig reh gruigh reghreu rugh orgh reh reouhg ore hroh ", src: "", alt: "GG"},
   {id: 2, room: "1", sender:"admin@home.com",text: "gggggggggggggggggggggggggggggggggggggggggggggggg", src: "", alt: "GG"},
   {id: 3, room: "2", sender:"Someone", text: "gg", src: "", alt: "GG"},
@@ -110,9 +139,9 @@ const msgs = [  //REMOVE
   
 ] 
 
-const rooms = [  //REMOVE
-  {roomId: "1", roomName: "1", admin: "admin@home.com", members:["admin@home.com", "gg@home.com"]},
-  {roomId: "2", roomName: "2", admin: "banana@homie.com", members:["admin@home.com", "banana@home.com"]}
+let rooms = [  //REMOVE
+  {roomId: "1", roomName: "My room 1", admin: 'admin@home.com', members:["admin@home.com", "gg@home.com"]},
+  {roomId: "2", roomName: "My room 2", admin: 'banana@home.com', members:["admin@home.com", "banana@home.com"]}
 ] 
 
 
