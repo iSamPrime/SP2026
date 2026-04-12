@@ -30,7 +30,7 @@ const bcrypt = require("bcrypt");
 const saltRounds = 10;
 const { body } = require('express-validator');
 
-/* import * as db from "./db" */
+const db = require("./db")
 
 const port = process.env.PORT;
 
@@ -47,7 +47,6 @@ app.use(express.static(path.join(__dirname, "../client/dist")));
 io.on("connection", (socket) => {
   const theSession = socket.request.session
 
-
   // Get my rooms 
   socket.on("reqMyRooms", ()=>{
     const user = theSession.email
@@ -58,59 +57,152 @@ io.on("connection", (socket) => {
   })
 
   // Update my rooms
-  socket.on("updateRoom", (req)=>{
+/*   socket.on("updateRoom", (req)=>{
     const theRoom = rooms.find(room=>room.roomId === req.roomId) //Edit
     rooms.find((room)=>room.roomId === req.roomId) //Edit
-
   })
+*/
 
   // Create Room
-  socket.on("creRoom", (reqRoom)=>{
-    const roomName = reqRoom.roomName
-    const emails = reqRoom.users
-    const creator = theSession.email
-    
-    const toAddUsers = []
+  socket.on("creRoom", async (reqRoom)=>{
+    try{
+      const roomName = reqRoom.roomName;
+      const emails = reqRoom.users;
+      const roomDesc = reqRoom.desc || "A new room!"
+      const adminId = theSession.userId;
+      const toAddUsers = []
+      toAddUsers.push(adminId) 
+      console.log(adminId)
 
-    for (const u of emails){
-      const userFound = users.find((user)=>user.email === u); //EDITE
-      if(!userFound) return socket.emit("crtdRoom", {status: "Error", msg: `User ${u} does not exist`}) 
-      toAddUsers.push(userFound.email) //EDITE
+      for (const u of emails){
+        const userFound = await db.query(
+          "SELECT user_id FROM users WHERE user_email = $1",
+          [u]
+        )
+        if(userFound.rows.length === 0){ 
+          return socket.emit("roomError", "You are not a member of this room!") 
+        }
+        const userId = userFound.rows[0].user_id;
+        toAddUsers.push(userId)
+      }
+
+      const room = await db.query(
+        `
+          INSERT INTO rooms (room_name, admin_id, room_description)
+          VALUES ($1, $2, $3)
+          RETURNING room_id;
+        `,
+        [roomName, adminId, roomDesc]
+      )
+      const room_id = room.rows[0].room_id
+
+      for (const u of toAddUsers){
+        await db.query(
+          `
+          INSERT INTO room_members (room_id, user_id)
+          VALUES ($1, $2)
+          ON CONFLICT (room_id, user_id) DO NOTHING
+          `,
+          [room_id, u]
+        )
+      }
+
+      socket.emit("crtdRoom", {status: "Success", roomId: room_id, roomName: roomName})
+    } catch (err){
+      console.log(err)
+      socket.emit("roomError", err)
     }
-
-    toAddUsers.push(creator) 
-
-    const roomId = Date.now()
-    rooms.push({roomId: roomId.toString(), roomName: roomName.toString(), admin: creator, members: toAddUsers})
-
-    socket.emit("crtdRoom", {status: "Success", roomId: roomId, roomName: roomName})
   })
 
   // Join Room
-  socket.on("room:join", (roomId)=>{
-    console.log(rooms)
-    const roomFound = rooms.find(r => r.roomId == roomId) //EDITE
-    if(!roomFound) return (socket.emit("roomError", "The room ID you entered does not exist!"))
+  socket.on("room:join", async (roomId)=>{
+    try{
+      if (!theSession?.userId) {
+        return socket.emit("roomError", "You must be logged in to join a room.")
+      }
 
-    const email = theSession.email 
-    const userFound = roomFound.members.includes(email); //EDITE
-    if(!userFound) return (socket.emit("roomError", "You are not a member of this room!"))
 
-    socket.join(`room:${roomId}`)
-    socket.emit("oldMsgs", msgs.filter(m => m.room == roomId))  //EDITE
-    socket.to(`room:${roomId}`).emit(`room:${roomId}:msgback`, `${theSession.email?.split("@")[0]} connected at: ${new Date()}`)
+      const roomFound = await db.query(
+        `
+        SELECT room_id, room_name, created_at, room_description, admin_id FROM rooms 
+        WHERE room_id = $1;
+        `,
+        [roomId]
+      )
+      if(roomFound.rows.length === 0){
+        return socket.emit("roomError", "Room was not found!")
+      }
+      const { room_id, room_name, created_at, room_description, admin_id } = roomFound.rows[0]
+      const roomInfo = {room_id: room_id, room_name: room_name, created_at :created_at, room_description: room_description, admin_id: admin_id}
     
 
+      const userId = theSession.userId 
+      const userFound = await db.query(
+        `
+        SELECT rm.joined_at,
+               u.user_name
+        FROM room_members rm
+        JOIN users u ON rm.user_id = u.user_id
+        WHERE rm.room_id = $1 AND u.user_id = $2;
+        `,
+        [roomId, userId]
+      )
+      if(userFound.rows.length === 0){
+        return socket.emit("roomError", "You are not a member of this room!")
+      }
+
+
+      const oldMsgs_res = await db.query(
+        `
+        SELECT m.msg_id, m.msg_content, m.created_at, m.edited_at, m.msg_user_id,
+                u.user_name, u.user_email
+        FROM msgs m
+        JOIN users u ON m.msg_user_id = u.user_id
+        WHERE m.room_id = $1
+        ORDER BY m.created_at ASC;
+        `,
+        [roomId]
+      )
+      const oldMsgs = oldMsgs_res.rows
+
+
+      socket.join(`room:${roomId}`)
+      socket.emit("roomInfo", roomInfo)
+      socket.emit("oldMsgs", oldMsgs)
+      socket.to(`room:${roomId}`).emit(`room:${roomId}:msgback`, `${theSession.user?.split("@")[0]} connected at: ${new Date()}`)
+    } catch (err) {
+      console.log(err)
+      socket.emit("roomError", "Unable to join room.")
+    } 
   })
 
+
   // Recive and send messeges 
+  socket.on("sendMsg", async (msg)=>{
+    try{
+      const dataBaseMsg = await db.query(
+        `
+        INSERT INTO msgs (room_id, msg_content, msg_user_id)
+        VALUES ($1, $2, $3)
+        RETURNING msg_id, room_id, msg_content, msg_user_id, created_at, edited_at
+        `,
+        [msg.roomId, msg.text, theSession.userId]
+      )
 
-  socket.on("sendMsg", (roomId, text)=>{
-    const msg = {id: new Date(), room: roomId, sender: theSession.email, text: text}
-    io.to(`room:${roomId}`).emit(`msgback`, msg);
-    msgs.push(msg) //EDITE
+      const resMsg = {
+        ...dataBaseMsg.rows[0],
+        user_name: theSession.userName
+      };
+      console.log(msg.roomId)
+      console.log(resMsg)
+
+      io.to(`room:${msg.roomId}`).emit(`msgback`, resMsg);
+
+    } catch (err) {
+      console.log(err)
+      socket.emit("roomError", err)
+    }
   }) 
-
 });
 
 
@@ -148,6 +240,8 @@ let rooms = [  //REMOVE
 
 
 /* ----     AUTH  &  Security    ---- */
+
+// Security 
 function validatEmail(data){
   return body(data).trim().escape().isEmail().withMessage('Please enter a valid email!')
 }
@@ -160,81 +254,110 @@ function authMw(req, res, next){
   next()
 }
 
+// Register 
 app.post("/register", 
   [
     validatEmail('email'),
     validatData('pw')
   ],
-  (req, res)=>{
-  const userId = Date.now();
-  const email = req.body.email;
-  const pw = req.body.password;
-  
-  if (req.session.loggedIn) { return res.send("Logout first") } 
-  if (!email) { return res.send("Please type an email!") }
-  if (!pw) { return res.send("Please type a password!") } 
+  async (req, res)=>{
+    try{
+      const userName = req.body.userName;
+      const email = req.body.email;
+      const pw = req.body.password;
+      
+      if (req.session.loggedIn) { return res.redirect("/error/Logout first!")} 
+      if (!userName) { return res.send("Please type a user name!")} 
+      if (!email) { return res.send("Please type an email!!")} 
+      if (!pw) { return res.send("Please type a password!")} 
 
-  const notAUser = !users.find((e)=>e.email === email) //EDIT
-  if(!notAUser){ return res.send("Account already exist, login instade") }
+      const aUser = await db.query(
+        'SELECT user_id FROM users WHERE user_email = $1;',
+        [email]
+      )
 
-  const password = bcrypt.hashSync(pw, saltRounds)
+      if(aUser.rows.length > 0){ 
+        return res.json("Account already exist, login instade.")
+      }
 
-  if (notAUser && pw){ 
-    users.push({  // EDIT
-      userId: userId, email:email, 
-      password: password
-    }) 
-    console.log(users)
-    req.session.userId = userId;
-    req.session.email = email; 
-    req.session.loggedIn = true;
-    //db.query('')
+      const password = bcrypt.hashSync(pw, saltRounds)
 
-    return res.send("Registered")
-  }
+      req.session.userId = aUser.user_id;
+      req.session.userName = userName;
+      req.session.email = email; 
+      req.session.loggedIn = true;
+
+      const registered = await db.query(
+        ` 
+          INSERT INTO users (user_name, user_email, password_hash)
+          VALUES ($1, $2, $3)
+          RETURNING user_name, user_email, userCreated;
+        `,
+        [userName, email, password]
+      )
+      if(registered.rows.length === 0){ 
+        return res.json({status: false, error:"Account already exist"})
+      }
+
+      return res.redirect("/")
+
+    } catch(err){
+      console.log(err)
+      res.send("Something went wrong, error: "+err)
+    }
 })  
 
+// Login
 app.post("/login",  
   [
     validatEmail('email'),
     validatData('pw')
   ], 
-  (req, res)=>{ 
+  async (req, res)=>{ 
     try{
       const email = req.body.email;
       const pw = req.body.password;
       
-      if (req.session.loggedIn) { return res.send("Logout first") } 
-      if (!email) { return res.send("Please type an email!") }
-      if (!pw) { return res.send("Please type a password!") } 
+      if (req.session.loggedIn) { return res.send("Logout first!")} 
+      if (!email) { return res.send("Please type an email!!")} 
+      if (!pw) { return res.send("Please type a password!")}
 
-      const user = users.find(e=>e.email===email) //EDIT
-      if(!user){ return res.send("Please register first!") }
+      const aUser = await db.query(
+        "SELECT user_id, user_name, password_hash FROM users WHERE user_email = $1;",
+        [email]
+      )
 
-      const checkedPw = bcrypt.compareSync(pw, user.password) //EDIT
+      if(aUser.rows.length === 0){ 
+        return res.json({status: false, error:"Please register first!"})
+      }
+      const { user_id, user_name, password_hash } = aUser.rows[0];
+
+      const checkedPw = bcrypt.compareSync(pw, password_hash) //EDIT
+      if (checkedPw){ 
       
-      if (user && pw && checkedPw){ 
-      
-        req.session.userId = user.userId;
+        req.session.userId = user_id;
+        req.session.userName = user_name;
         req.session.email = email; 
         req.session.loggedIn = true;
-        //db.query('')
-        
         return res.redirect("/")
 
       } else {
-        res.send("Something went wrong")
+        res.send("Wrong password or email")
       }
 
-
-
-    } catch (error){
-      console.log(error.message)
-    } 
+    } catch(err){
+      console.log(err)
+      res.send("Something went wrong, error: "+err)
+    }
   } 
-) 
+)
 
-app.get("/session", (req, res)=>{
+app.get("/error/:err", (req, res)=>{
+  const err = req.params.err; 
+  res.send(err)
+})
+
+app.get("/session", authMw, (req, res)=>{
   const session0 = req.session
   if(req.session.userId) {
     res.json({status: "Session", session: session0}) 

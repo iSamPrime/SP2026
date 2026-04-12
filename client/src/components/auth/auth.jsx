@@ -4,11 +4,12 @@ import Aform from "./aform"
 export default function Auth({ mySession }) {
     const [email, setEmail] = useState(null)
     const [pw, setPW] = useState(null)
-    const [onScreen, setOnScreen] = useState("login")
+    const [userName, setUserName] = useState(null)
+    const [onScreen, setOnScreen] = useState("Login")
 
     useEffect(() => {
         if (!mySession) return;
-        setOnScreen(mySession.loggedIn ? "logout" : "login");
+        setOnScreen(mySession.loggedIn ? "Logout" : "Login");
     }, [mySession])
 
 
@@ -18,22 +19,22 @@ export default function Auth({ mySession }) {
         <div className="max-w-2xl mx-auto py-8 px-4">
             <div className="bg-white rounded-2xl shadow-lg p-8 space-y-10">
                 
-                {onScreen !== "logout" ? (
+                {onScreen !== "Logout" ? (
                     <>
                         <div className="flex gap-3">
                             <button 
-                                className={`${toggleButtonBase} ${onScreen === "login" 
+                                className={`${toggleButtonBase} ${onScreen === "Login" 
                                     ? "bg-sky-500 text-white border-sky-500 focus:ring-sky-200" 
                                     : "bg-gray-100 text-gray-600 border-transparent hover:bg-gray-200"}`}
-                                onClick={() => setOnScreen("login")}
+                                onClick={() => setOnScreen("Login")}
                             >
                                 Login
                             </button>
                             <button 
-                                className={`${toggleButtonBase} ${onScreen === "register" 
+                                className={`${toggleButtonBase} ${onScreen === "Register" 
                                     ? "bg-sky-500 text-white border-sky-500 focus:ring-sky-200" 
                                     : "bg-gray-100 text-gray-600 border-transparent hover:bg-gray-200"}`}
-                                onClick={() => setOnScreen("register")}
+                                onClick={() => setOnScreen("Register")}
                             >
                                 Register
                             </button>
@@ -61,16 +62,18 @@ export default function Auth({ mySession }) {
                             </div>
 
                             <Aform 
-                                id={onScreen} 
+                                state={onScreen} 
                                 email={email} 
                                 setEmail={setEmail} 
                                 pw={pw} 
                                 setPW={setPW} 
+                                userName={userName}
+                                setUserName={setUserName}
                             />
                         </div>
                     </>
                 ) : (
-                    /* Logout State */
+                    
                     <div className="space-y-6 text-center">
                         <div className="space-y-2">
                             <h2 className="text-3xl font-semibold text-gray-800">Sign Out</h2>

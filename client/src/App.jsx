@@ -3,7 +3,7 @@ import Auth from './components/auth/auth.jsx'
 import Home from './components/Home/Home.jsx';
 
 export default function App() {
-  const [activeTap, setActiveTap] = useState(1)
+  const [activeTap, setActiveTap] = useState(0)
   const [mySession, setMySession] = useState(null)
 
 

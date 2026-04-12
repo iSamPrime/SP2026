@@ -11,7 +11,7 @@ export default function RoomSearch({ setJoinedRoom, setRoomName, roomName, socke
 
 
     const handleCreateRoom = () => {
-        socketIo.emit("creRoom", { roomName: roomName, users: members })
+        socketIo.emit("creRoom", { roomName: roomName, users: members})
 
         socketIo.on("crtdRoom",(room)=>{
             if(room.status === "Error"){
@@ -37,14 +37,14 @@ return(
                 <div className="flex gap-2">
                     <input 
                         className="flex-1 border-2 border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-all"
-                        type="" 
+                        type="text" 
                         placeholder="Enter room ID..." 
                         onChange={(e) => setJoinValue(e.target.value)}
                     />
                     <button 
                         className="max-w-20 bg-gray-800 text-white border-2 border-gray-800 rounded-lg py-3 px-4 font-medium hover:bg-black transition-all focus:ring-2 focus:ring-gray-400 outline-none"
                         type="submit"
-                        onClick={() => setJoinedRoom(joinValue.toString())}
+                        onClick={() => setJoinedRoom(joinValue)}
                     >
                         Join
                     </button>

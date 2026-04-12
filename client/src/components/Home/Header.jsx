@@ -36,7 +36,7 @@ return(
                 <img className={Css.img} src="profileDef.jpg" alt="Profile picture" />
             </div>
 
-            <p className="text-white">{mySession?.email}</p>
+            <p className="text-white">{mySession?.userName}</p>
 
             <div className="ml-5 pr-2">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -50,7 +50,7 @@ return(
                 <>
                     <div className="absolute left-0 top-full w-full h-3" />
                     <div className="absolute left-0 top-full mt-3 w-full bg-slate-800 rounded-lg p-2 shadow-lg border border-white/5 z-20">
-                        <nav onClick={()=> setNavOpen(false)} className="flex flex-col gap-2">
+                        <nav  className="flex flex-col gap-2" onClick={()=> setNavOpen(false)}>
                             <button className={Css.buttonNav} onClick={() => setActiveTap(21)} >Profile</button>
                             <button className={Css.buttonNav} onClick={() => setActiveTap(22)} >Dash board</button>
                             <button className={Css.buttonNav} onClick={() => setActiveTap(23)} >Settings</button>

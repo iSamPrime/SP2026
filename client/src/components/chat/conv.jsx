@@ -4,9 +4,9 @@ import { useState,  useEffect} from 'react';
 
 export default function Conv({socketIo, mySession, roomId, setJoinedRoom, setActiveTap}){
 
-    const date = new Date();
     const [msgs, setMsgs] = useState([])
     const [theMsg, setTheMsg] = useState("")
+    const [roomInfo, setRoomInfo] = useState([])
     
     function handleEnter(e){
         try{
@@ -17,8 +17,13 @@ export default function Conv({socketIo, mySession, roomId, setJoinedRoom, setAct
               if(!text) {alert("Empty message"); return}
             
               if(socketIo.connected){
-                  socketIo.emit("sendMsg", roomId, text);
-                  setTheMsg('');
+                    const msg = {
+                      roomId: roomInfo.room_id, 
+                      text: text,
+                    }
+
+                    socketIo.emit("sendMsg", msg );
+                    setTheMsg('');
               } else {
                   alert("Connection lost!"); return;
               }
@@ -36,7 +41,6 @@ export default function Conv({socketIo, mySession, roomId, setJoinedRoom, setAct
 
             const handleOldMsgs = (oldMsgs)=>{
                 setMsgs(oldMsgs)
-                console.log(oldMsgs)
             };
 
             const handleMsg = (msg) => {
@@ -48,15 +52,20 @@ export default function Conv({socketIo, mySession, roomId, setJoinedRoom, setAct
                 alert(errorMsg)
             };
 
+            const handleRoomInfo = (roomInfo)=>{
+                setRoomInfo(roomInfo)
+            }
+
             socketIo.on("roomError", alertErr);
             socketIo.on("oldMsgs", handleOldMsgs);
             socketIo.on("msgback", handleMsg);
-            
+            socketIo.on("roomInfo", handleRoomInfo)
             
 
             return () => {
-                socketIo.off("oldMsgs", handleOldMsgs); 
+                socketIo.off("oldMsgs", handleOldMsgs);
                 socketIo.off("msgback", handleMsg);
+                socketIo.off("roomInfo", handleRoomInfo)
             };
 
         } catch(error) {
