@@ -383,6 +383,31 @@ io.on("connection", (socket) => {
       socket.emit("roomError", err)
     }
   })
+
+  //Delete msg 
+  socket.on("deleteMsg", async (msg)=>{
+    try{
+      const userId = theSession?.userId;
+
+      await db.query(
+        `
+          DELETE FROM msgs
+            WHERE msg_id = $1
+            AND (
+              msg_user_id = $2
+              OR 
+              (SELECT admin_id FROM rooms WHERE room_id = $3) = $2
+            );
+        `
+      , [msg.msgId, userId, msg.roomId])
+
+      io.to(`room:${msg.roomId}`).emit(`deletedMsg`, msg.msgId);
+
+    } catch (err) {
+      console.log(err)
+      socket.emit("roomError", err)
+    }
+  })
 });
 
 

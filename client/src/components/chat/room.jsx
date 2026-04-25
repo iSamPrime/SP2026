@@ -49,57 +49,18 @@ export default function Room({socketIo, mySession, setActiveTap, roomInfo, joine
             socketIo.on("msgback", (msg) => {
                 setMsgs((prev) => [...prev, msg]);
             });
-            socketIo.on("editedMsg", (newMsg)=>{
-                setMsgs((prev) => prev.map((msg) =>
-                    msg.msg_id === newMsg.msg_id
-                        ? { ...msg, msg_content: newMsg.msg_content, edited_at: newMsg.edited_at }
-                        : msg
-                ))
-            })
-
-                
-        } catch(error) {
-            console.log(error);
-            setMsgs([]);
-            alert(error)
-        }
-    }, [socketIo, roomInfo.room_id])
-    
-    useEffect( ()=>{ 
-        try{
-            setActiveTap(11)
-
-            socketIo.emit("getOldMsgs", roomInfo.room_id)
-
-            socketIo.on("roomError", (errorMsg) =>{
-                setJoinedRoom(null)
-                alert(errorMsg)
-            });
-            socketIo.once("oldMsgs", (oldMsgs)=>{
-                setMsgs(oldMsgs)
-            });
-            socketIo.on("msgback", (msg) => {
-                setMsgs((prev) => [...prev, msg]);
-            });
-            socketIo.on("editedMsg", (newMsg)=>{
-                setMsgs((prev) => prev.map((msg) =>
-                    msg.msg_id === newMsg.msg_id
-                        ? { ...msg, msg_content: newMsg.msg_content, edited_at: newMsg.edited_at }
-                        : msg
-                ))
-            })
             socketIo.on("editedMsg", (newMsg) => {
-                console.log("editedMsg received", newMsg)
                 setMsgs((prev) => prev.map((msg) =>
                     msg.msg_id === newMsg.msg_id
                         ? { ...msg, msg_content: newMsg.msg_content, edited_at: newMsg.edited_at }
                         : msg
                 ))
             })
-
-
-            
-                
+            socketIo.on("deletedMsg", (deletedMsgId)=>{
+                setMsgs((prev) => prev.filter((msg) =>(
+                    !(msg.msg_id === deletedMsgId) && msg
+                )))
+            })
         } catch(error) {
             console.log(error);
             setMsgs([]);
@@ -110,8 +71,10 @@ export default function Room({socketIo, mySession, setActiveTap, roomInfo, joine
             socketIo.off("oldMsgs")
             socketIo.off("msgback")
             socketIo.off("editedMsg")
+            socketIo.off("deletedMsg")
         }
     }, [socketIo, roomInfo.room_id])
+
 
     const css = {
         textarea: "w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 mt-2 text-sm focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-all ",
@@ -149,7 +112,6 @@ return(
                     mySession={mySession} 
                     css={css}
                     msgs={msgs}
-                    setMsgs={setMsgs}
                     socketIo={socketIo}
                 />
             ))}

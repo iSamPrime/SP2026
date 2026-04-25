@@ -33,7 +33,7 @@ CREATE TABLE room_members (
 );
 
 
--- Messages table with edit tracking
+-- Messages table 
 CREATE TABLE msgs (
     msg_id SERIAL PRIMARY KEY,
     room_id INT NOT NULL REFERENCES rooms(room_id) ON DELETE CASCADE,
@@ -85,6 +85,7 @@ RETURNING admin_id, user_id, joined_at;
 
 
 
+
 -- Join room to chat 
 SELECT room_id, room_name, created_at, room_description, admin_id FROM rooms 
 WHERE room_id = $1;
@@ -103,7 +104,7 @@ WHERE m.room_id = $1
 ORDER BY m.created_at ASC;
 
 -- Get all messages in a room 
-SELECT m.msg_id, m.msg_content, m.created_at, m.edited_at,
+SELECT m.msg_id, m.room_id, m.msg_content, m.created_at, m.edited_at, m.msg_user_id,
         u.user_name, u.user_email
 FROM msgs m
 JOIN users u ON m.msg_user_id = u.user_id
@@ -113,7 +114,15 @@ ORDER BY m.created_at ASC;
 -- Create Message 
 INSERT INTO msgs (room_id, msg_content, msg_user_id)
 VALUES ($1, $2, $3)
-RETURNING msg_id, room_id, msg_content, msg_user_id, created_at, edited_at
+RETURNING msg_id, room_id, msg_content, msg_user_id, created_at, edited_at;
+
+-- Edit message (only sender can edit)
+UPDATE msgs 
+    SET msg_content = $1, edited_at = CURRENT_TIMESTAMP
+    WHERE msg_id = $2 AND msg_user_id = $3 
+RETURNING msg_id, msg_content, edited_at;
+
+
 
 
 
@@ -136,29 +145,7 @@ JOIN room_members rm ON r.room_id = rm.room_id
 JOIN users u ON rm.user_id = u.user_id
 JOIN users a ON r.admin_id = a.user_id
 WHERE rm.user_id = $1
-ORDER BY r.room_name, u.user_name
-
-
-
-
--- Rooms table
-CREATE TABLE rooms (
-    room_id SERIAL PRIMARY KEY,
-    room_name VARCHAR(255) NOT NULL,
-    admin_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    room_description VARCHAR(2000),
-    is_active BOOLEAN DEFAULT true
-);
-
-
--- Room members junction table
-CREATE TABLE room_members (
-    room_id INT NOT NULL REFERENCES rooms(room_id) ON DELETE CASCADE,
-    user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    joined_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (room_id, user_id)
-);
+ORDER BY r.room_name, u.user_name;
 
 -- Update room
 SELECT admin_id 
@@ -169,38 +156,48 @@ UPDATE rooms
 SET room_name = $2,
     admin_id = (SELECT user_id FROM users WHERE user_email = $3),
     room_description = $4
-WHERE room_id = $1
+WHERE room_id = $1;
 
 DELETE FROM room_members
-    WHERE room_id = $1 AND user_id NOT IN (SELECT user_id FROM users WHERE user_email = ANY($2))
+    WHERE room_id = $1 AND user_id NOT IN (SELECT user_id FROM users WHERE user_email = ANY($2));
 
 INSERT INTO room_members (room_id, user_id)
     SELECT $1, user_id FROM users WHERE user_email = ANY($2)
-    ON CONFLICT (room_id, user_id) DO NOTHING
+    ON CONFLICT (room_id, user_id) DO NOTHING;
 
 SELECT r.room_id, r.room_name, r.room_description, r.admin_id, u.user_name as admin_name, u.user_email as admin_email
     FROM rooms r
     JOIN users u ON r.admin_id = u.user_id
-    WHERE r.room_id = $1
+    WHERE r.room_id = $1;
 
 SELECT rm.user_id, u.user_name as member_name, u.user_email
     FROM room_members rm
     JOIN users u ON rm.user_id = u.user_id
-    WHERE rm.room_id = $1
+    WHERE rm.room_id = $1;
 
 -- Remove Room Access
 DELETE FROM room_members 
-  WHERE room_id = $1 AND user_id = $2
+  WHERE room_id = $1 AND user_id = $2;
 
 
 
 
 
--- Edit message (only sender can edit)
-UPDATE msgs 
-    SET msg_content = $1, edited_at = CURRENT_TIMESTAMP
-    WHERE msg_id = $2 AND msg_user_id = $3 
-RETURNING msg_id, msg_content, edited_at;
+
+
+-- Delete message 
+DELETE FROM msgs
+  WHERE msg_id = $1
+  AND (
+    msg_user_id = $2
+    OR 
+    (SELECT admin_id FROM rooms WHERE room_id = $3) = $2
+  );
+
+
+
+
+
 
 
 
@@ -211,16 +208,6 @@ RETURNING msg_id, msg_content, edited_at;
 -- Delete room (only admin can do this)
 DELETE FROM rooms
 WHERE admin_id = $1 AND admin_id = $2;
-
-
--- Soft delete message (only sender or admin can delete)
-UPDATE msgs 
-SET is_deleted = true, deleted_by = $1, deleted_at = CURRENT_TIMESTAMP
-WHERE msg_id = $2 AND is_deleted = false
-AND (msg_sender = $1 OR EXISTS (
-    SELECT 1 FROM rooms WHERE admin_id = (SELECT admin_id FROM msgs WHERE msg_id = $2) AND admin_id = $1
-))
-RETURNING msg_id;
 
 -- Check if user can delete message
 SELECT 

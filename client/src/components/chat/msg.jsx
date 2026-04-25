@@ -1,7 +1,7 @@
 import { useState} from "react"
 
 
-export default function Msg({m, i, mySession, css, msgs, setMsgs, socketIo}){
+export default function Msg({m, i, msgs, mySession, css, socketIo}){
     const [editing, setEditing] = useState(false)
     const [newText, setNewText] = useState(m.msg_content)
     const lastMsgSender = i > 0 && msgs[i-1]?.msg_user_id === msgs[i].msg_user_id;
@@ -15,8 +15,24 @@ export default function Msg({m, i, mySession, css, msgs, setMsgs, socketIo}){
     }
 
     const deleteMsg = ()=>{
-        
-    }
+        try{
+
+            if(socketIo.connected){
+                const msg = {
+                    msgId: m.msg_id,  
+                    roomId: m.room_id, 
+                }
+
+                socketIo.emit("deleteMsg", msg );
+                setEditing(false)
+            } else {
+                alert("Connection lost!"); return;
+            }
+
+        } catch(error) {
+          console.log(error)
+        }
+    }    
 
     const handleEnter = (e)=>{
         try{
