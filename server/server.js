@@ -48,31 +48,164 @@ io.on("connection", (socket) => {
   const theSession = socket.request.session
 
   // Get my rooms 
-  socket.on("reqMyRooms", ()=>{
-    const user = theSession.email
-    const myRooms = rooms.filter((room)=>room.admin === user) //Edit
+  socket.on("reqMyRooms", async ()=>{
+    const userId = theSession.userId;
+    const rooms_result = await db.query(`
+      SELECT 
+        r.room_id,
+        r.room_name,
+        r.room_description,
+        r.admin_id,
+        r.created_at,
+        
+        a.user_name as admin_name,
+        a.user_email as admin_email,
+        
+        u.user_id as member_id,
+        u.user_name as member_name,
+        u.user_email as member_email
+      FROM rooms r
+      JOIN room_members rm ON r.room_id = rm.room_id
+      JOIN users u ON rm.user_id = u.user_id
+      JOIN users a ON r.admin_id = a.user_id
+      WHERE r.room_id IN (SELECT room_id FROM room_members WHERE user_id = $1)
+      ORDER BY r.room_name, u.user_name
+    ;`, [userId])
 
+    if(rooms_result.rows.length === 0){ 
+      return socket.emit("roomInfo", {status: false, error: "Getting room error!"}) 
+    }
 
-    socket.emit("resMyRooms", myRooms)
+    const roomsMap = {}
+    rooms_result.rows.forEach(
+      row =>{ 
+        if (!roomsMap[row.room_id]) {
+          roomsMap[row.room_id] = {
+            room_id: row.room_id,
+            room_name: row.room_name,
+            room_description: row.room_description,
+            admin: {
+              user_id: row.admin_id,
+              user_name: row.admin_name,
+              user_email: row.admin_email
+            },
+            members: []
+          }
+        }
+        roomsMap[row.room_id].members.push({
+          user_id: row.member_id,
+          user_name: row.member_name,
+          user_email: row.member_email
+        })
+
+      }
+    )
+    socket.emit("resMyRooms", Object.values(roomsMap))
   })
 
-  // Update my rooms
-/*   socket.on("updateRoom", (req)=>{
-    const theRoom = rooms.find(room=>room.roomId === req.roomId) //Edit
-    rooms.find((room)=>room.roomId === req.roomId) //Edit
-  })
-*/
+  // Update my room
+  socket.on("updateRoom", async (req) => {
+    try {
+      const { roomId, roomName, roomDescription, roomAdminEmail, members } = req;
+      const userId = theSession.userId;
+
+      const checkAdmin = await db.query(`
+          SELECT admin_id 
+            FROM rooms
+            WHERE room_id = $1
+      `, [roomId]);
+      const isAdmin = (checkAdmin.rows[0]?.admin_id === userId)
+
+      if(isAdmin){
+        const roomUpdate = await db.query(`
+          UPDATE rooms
+            SET room_name = $2,
+              admin_id = (SELECT user_id FROM users WHERE user_email = $3),
+              room_description = $4
+            WHERE room_id = $1
+        `, [roomId, roomName, roomAdminEmail, roomDescription]);
+
+        if(!members.includes((m)=>m===roomAdminEmail)){
+          members.push(roomAdminEmail)
+        }
+
+        await db.query(`
+          DELETE FROM room_members
+            WHERE room_id = $1 AND user_id NOT IN (SELECT user_id FROM users WHERE user_email = ANY($2))
+        `, [roomId, members]);
+
+        await db.query(`
+          INSERT INTO room_members (room_id, user_id)
+            SELECT $1, user_id FROM users WHERE user_email = ANY($2)
+            ON CONFLICT (room_id, user_id) DO NOTHING
+        `, [roomId, members]);
+        socket.emit("error", "Room updated!")
+      } else {
+        socket.emit("error", "You are not the admin of this room")
+      }
+
+      const roomInfo = await db.query(`
+          SELECT r.room_id, r.room_name, r.room_description, r.admin_id, u.user_name as admin_name, u.user_email as admin_email
+          FROM rooms r
+          JOIN users u ON r.admin_id = u.user_id
+          WHERE r.room_id = $1
+      `, [roomId]);
+
+      const memberList = await db.query(`
+          SELECT rm.user_id, u.user_name as member_name, u.user_email
+          FROM room_members rm
+          JOIN users u ON rm.user_id = u.user_id
+          WHERE rm.room_id = $1
+      `, [roomId]);
+
+      socket.emit("newRoom", {
+        newRoom: {
+            room_id: roomInfo.rows[0].room_id,
+            room_name: roomInfo.rows[0].room_name,
+            room_description: roomInfo.rows[0].room_description,
+            admin: {
+                user_id: roomInfo.rows[0].admin_id,
+                user_name: roomInfo.rows[0].admin_name,
+                user_email: roomInfo.rows[0].admin_email
+            }
+        },
+        newMembers: memberList.rows.map(row => ({
+            user_id: row.user_id,
+            user_name: row.member_name,
+            user_email: row.user_email
+        }))
+      });
+
+
+    } catch (err) {
+        console.log("UpdateRoom Error: ", err);
+    }
+  });
+
+  // Remove Room Access
+  socket.on("removeRoomAccess", async (roomId) => {
+    try {
+      const userId = theSession.userId;
+      await db.query(`
+        DELETE FROM room_members 
+          WHERE room_id = $1 AND user_id = $2
+      `, [roomId, userId]);
+      socket.emit("removedAccess", roomId)
+      socket.emit("error", "Your access have been removed!")
+    } catch (err) {
+        console.log("UpdateRoom Error: ", err);
+    }
+  });
 
   // Create Room
   socket.on("creRoom", async (reqRoom)=>{
     try{
       const roomName = reqRoom.roomName;
       const emails = reqRoom.users;
-      const roomDesc = reqRoom.desc || "A new room!"
+      const roomDesc = reqRoom.roomDescription || "A new room!"
       const adminId = theSession.userId;
       const toAddUsers = []
       toAddUsers.push(adminId) 
-      console.log(adminId)
 
       for (const u of emails){
         const userFound = await db.query(
@@ -80,7 +213,7 @@ io.on("connection", (socket) => {
           [u]
         )
         if(userFound.rows.length === 0){ 
-          return socket.emit("roomError", "You are not a member of this room!") 
+          return socket.emit("roomInfo", {status: false, error: "You are not a member of this room!"})
         }
         const userId = userFound.rows[0].user_id;
         toAddUsers.push(userId)
@@ -107,20 +240,20 @@ io.on("connection", (socket) => {
         )
       }
 
-      socket.emit("crtdRoom", {status: "Success", roomId: room_id, roomName: roomName})
+      socket.emit("crtdRoom", {status: "Success", room_id: room_id, roomName: roomName})
     } catch (err){
       console.log(err)
-      socket.emit("roomError", err)
+      socket.emit("roomInfo", {status: false, error: err})
     }
   })
 
   // Join Room
   socket.on("room:join", async (roomId)=>{
     try{
-      if (!theSession?.userId) {
-        return socket.emit("roomError", "You must be logged in to join a room.")
+      const userId = theSession.userId;
+      if (!userId) {
+        return socket.emit("roomInfo", {status: false, error: "You must be logged in to join a room."}) 
       }
-
 
       const roomFound = await db.query(
         `
@@ -130,13 +263,11 @@ io.on("connection", (socket) => {
         [roomId]
       )
       if(roomFound.rows.length === 0){
-        return socket.emit("roomError", "Room was not found!")
+        return socket.emit("roomInfo", {status: false, error:"Room was not found!"})
       }
       const { room_id, room_name, created_at, room_description, admin_id } = roomFound.rows[0]
       const roomInfo = {room_id: room_id, room_name: room_name, created_at :created_at, room_description: room_description, admin_id: admin_id}
     
-
-      const userId = theSession.userId 
       const userFound = await db.query(
         `
         SELECT rm.joined_at,
@@ -148,9 +279,8 @@ io.on("connection", (socket) => {
         [roomId, userId]
       )
       if(userFound.rows.length === 0){
-        return socket.emit("roomError", "You are not a member of this room!")
+        return socket.emit("roomInfo", {status: false, error: "You are not a member of this room!"})
       }
-
 
       const oldMsgs_res = await db.query(
         `
@@ -167,34 +297,38 @@ io.on("connection", (socket) => {
 
 
       socket.join(`room:${roomId}`)
-      socket.emit("roomInfo", roomInfo)
+      socket.emit("roomInfo", {status: true, roomInfo: roomInfo})
       socket.emit("oldMsgs", oldMsgs)
-      socket.to(`room:${roomId}`).emit(`room:${roomId}:msgback`, `${theSession.user?.split("@")[0]} connected at: ${new Date()}`)
+      socket.to(`room:${roomId}`).emit(`room:${roomId}:msgback`, `${theSession.userName} connected at: ${new Date()}`)
     } catch (err) {
       console.log(err)
       socket.emit("roomError", "Unable to join room.")
     } 
   })
 
+  // Leave Room 
+  socket.on("leave-room", (roomId) => {
+    socket.to(`room:${roomId}`).emit(`room:${roomId}:msgback`, `${theSession.userName} left at: ${new Date()}`)
+    socket.leave(`room:${roomId}`);
+  })  
 
   // Recive and send messeges 
   socket.on("sendMsg", async (msg)=>{
     try{
+      const userId = theSession.userId;
       const dataBaseMsg = await db.query(
         `
         INSERT INTO msgs (room_id, msg_content, msg_user_id)
         VALUES ($1, $2, $3)
         RETURNING msg_id, room_id, msg_content, msg_user_id, created_at, edited_at
         `,
-        [msg.roomId, msg.text, theSession.userId]
+        [msg.roomId, msg.text, userId]
       )
 
       const resMsg = {
         ...dataBaseMsg.rows[0],
         user_name: theSession.userName
       };
-      console.log(msg.roomId)
-      console.log(resMsg)
 
       io.to(`room:${msg.roomId}`).emit(`msgback`, resMsg);
 
@@ -207,38 +341,6 @@ io.on("connection", (socket) => {
 
 
 
-
-
-
-
-
-
-
-
-
-
-let users = [  //REMOVE
-  {userId: 1772992251900, email: 'admin@home.com', password: '$2b$10$bBpjmkZ3IGdIsKos6SXCu.ItI8SMcAMY93gwxEO5gK5lWGchVBkiy'},
-  {userId: 1774467143323, email: 'banana@home.com', password: '$2b$10$M4APJxU2f4y5cM6QrOufx.7mVsFSBDLxEErU3Xjxdhzel7twpUB2y'},
-  {userId: 1774467243713, email: 'gg@home.com', password: '$2b$10$IcxIrqDcdEzL8Anu0qo2l.TUAgwlz3UHgOiK00sRkZ25thgBsNTc.'},
-] 
-
-let msgs = [  //REMOVE
-  {id: 1, room: "1", sender:"banana", text: " gggggggggggggg gggg ggggggggggggggggggggggggggggggggggggggggggggggggggggg iu hrei greig reh gruigh reghreu rugh orgh reh reouhg ore hroh ", src: "", alt: "GG"},
-  {id: 2, room: "1", sender:"admin@home.com",text: "gggggggggggggggggggggggggggggggggggggggggggggggg", src: "", alt: "GG"},
-  {id: 3, room: "2", sender:"Someone", text: "gg", src: "", alt: "GG"},
-  {id: 4, room: "1", sender:"Isac",  text: "gg", src: "", alt: "GG"}
-  
-] 
-
-let rooms = [  //REMOVE
-  {roomId: "1", roomName: "My room 1", admin: 'admin@home.com', members:["admin@home.com", "gg@home.com"]},
-  {roomId: "2", roomName: "My room 2", admin: 'banana@home.com', members:["admin@home.com", "banana@home.com"]}
-] 
-
-
-
-
 /* ----     AUTH  &  Security    ---- */
 
 // Security 
@@ -248,7 +350,6 @@ function validatEmail(data){
 function validatData(data){
   return body(data).trim().escape()
 }
-
 function authMw(req, res, next){
   if(!req.session.loggedIn) return res.redirect("/Not_logged_in")
   next()
@@ -266,7 +367,7 @@ app.post("/register",
       const email = req.body.email;
       const pw = req.body.password;
       
-      if (req.session.loggedIn) { return res.redirect("/error/Logout first!")} 
+      if (req.session.loggedIn) { return res.send("Logout first!")} 
       if (!userName) { return res.send("Please type a user name!")} 
       if (!email) { return res.send("Please type an email!!")} 
       if (!pw) { return res.send("Please type a password!")} 
@@ -277,27 +378,28 @@ app.post("/register",
       )
 
       if(aUser.rows.length > 0){ 
-        return res.json("Account already exist, login instade.")
+        return res.send("Account already exist, login instade.")
       }
 
       const password = bcrypt.hashSync(pw, saltRounds)
-
-      req.session.userId = aUser.user_id;
-      req.session.userName = userName;
-      req.session.email = email; 
-      req.session.loggedIn = true;
 
       const registered = await db.query(
         ` 
           INSERT INTO users (user_name, user_email, password_hash)
           VALUES ($1, $2, $3)
-          RETURNING user_name, user_email, userCreated;
+          RETURNING user_id, user_name, user_email, userCreated;
         `,
         [userName, email, password]
       )
       if(registered.rows.length === 0){ 
-        return res.json({status: false, error:"Account already exist"})
+        return res.send("Account already exist")
       }
+      const {user_id, user_name, user_email} = registered.rows[0]
+
+      req.session.userId = user_id;
+      req.session.userName = user_name;
+      req.session.email = user_email; 
+      req.session.loggedIn = true;
 
       return res.redirect("/")
 
@@ -328,7 +430,7 @@ app.post("/login",
       )
 
       if(aUser.rows.length === 0){ 
-        return res.json({status: false, error:"Please register first!"})
+        return res.send("Please register first!")
       }
       const { user_id, user_name, password_hash } = aUser.rows[0];
 
@@ -351,11 +453,6 @@ app.post("/login",
     }
   } 
 )
-
-app.get("/error/:err", (req, res)=>{
-  const err = req.params.err; 
-  res.send(err)
-})
 
 app.get("/session", authMw, (req, res)=>{
   const session0 = req.session

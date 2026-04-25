@@ -1,7 +1,7 @@
 
 
 
-export default function Header ({navOpen, setNavOpen, Css, setActiveTap, activeTap, exitRoom, mySession}) {
+export default function Header ({navOpen, setNavOpen, Css, setActiveTap, activeTap, mySession}) {
 
 
 return(
@@ -20,7 +20,7 @@ return(
             }
         `}
     >   
-        <div className={Css.imgDiv} onClick={exitRoom}>
+        <div className={Css.imgDiv}>
             <img className={Css.img} src="/wavechat.png" alt="Logo" />
         </div>
 

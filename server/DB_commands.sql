@@ -71,16 +71,18 @@ RETURNING user_name, user_email, user_created;
 SELECT user_id, password_hash FROM users WHERE user_email = $1;
 
 
--- Create Room (user becomes admin)
+
+-- Create Room (Creator becomes admin)
 INSERT INTO rooms (room_name, admin_id, room_description)
 VALUES ($1, $2, $3)
 RETURNING room_id, room_name, admin_id, created_at;
 
--- Add person to room (admin adds them - doesn't join chat yet)
+-- Add person to room 
 INSERT INTO room_members (admin_id, user_id, is_currently_in_room)
 VALUES ($1, $2, false)
 ON CONFLICT (admin_id, user_id) DO NOTHING
 RETURNING admin_id, user_id, joined_at;
+
 
 
 -- Join room to chat 
@@ -108,33 +110,83 @@ JOIN users u ON m.msg_user_id = u.user_id
 WHERE m.room_id = $1
 ORDER BY m.created_at ASC;
 
-
-
-
-
-
-
--- Create message
-INSERT INTO msgs (msg_content, msg_user_id, room_id)
+-- Create Message 
+INSERT INTO msgs (room_id, msg_content, msg_user_id)
 VALUES ($1, $2, $3)
-RETURNING msg_id, msg_content, created_at, msg_sender;
+RETURNING msg_id, room_id, msg_content, msg_user_id, created_at, edited_at
 
 
 
+-- Get all rooms and users that the user is a member of
+SELECT 
+    r.room_id,
+    r.room_name,
+    r.room_description,
+    r.admin_id,
+    r.created_at,
 
+    a.user_name as admin_name,
+    a.user_email as admin_email,
 
-
--- Get room info
-SELECT admin_id, room_name, admin_id, created_at FROM rooms 
-WHERE admin_id = $1;
-
--- Get all rooms user is member of
-SELECT r.admin_id, r.room_name, r.admin_id, r.created_at, u.user_name as admin_name
+    u.user_id as member_id,
+    u.user_name as member_name,
+    u.user_email as member_email
 FROM rooms r
-JOIN room_members rm ON r.admin_id = rm.admin_id
-JOIN users u ON r.admin_id = u.user_id
+JOIN room_members rm ON r.room_id = rm.room_id
+JOIN users u ON rm.user_id = u.user_id
+JOIN users a ON r.admin_id = a.user_id
 WHERE rm.user_id = $1
-ORDER BY r.created_at DESC;
+ORDER BY r.room_name, u.user_name
+
+
+
+
+-- Rooms table
+CREATE TABLE rooms (
+    room_id SERIAL PRIMARY KEY,
+    room_name VARCHAR(255) NOT NULL,
+    admin_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    room_description VARCHAR(2000),
+    is_active BOOLEAN DEFAULT true
+);
+
+
+-- Room members junction table
+CREATE TABLE room_members (
+    room_id INT NOT NULL REFERENCES rooms(room_id) ON DELETE CASCADE,
+    user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    joined_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (room_id, user_id)
+);
+
+-- Update room
+BEGIN;
+
+UPDATE rooms
+    SET room_name = $2,
+        admin_id = (SELECT user_id FROM users WHERE user_email = $3),
+        room_description = $4
+    WHERE room_id = $1;
+
+DELETE FROM room_members
+    WHERE room_id = $1 AND user_id != ANY($5::int[]);
+
+INSERT INTO room_members (room_id, user_id)
+    SELECT $1, UNNEST($5::int[]);
+
+SELECT rm.user_id, u.user_email
+FROM room_members rm
+JOIN users u ON rm.user_id = u.user_id
+WHERE rm.room_id = $1;
+
+COMMIT;
+
+
+
+
+
+
 
 -- Delete room (only admin can do this)
 DELETE FROM rooms

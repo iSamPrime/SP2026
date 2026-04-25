@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export default function AddMembers({members, setMembers}){
+export default function AddMembers({members, setMembers, css}){
 
     const [createValue, setCreateValue] = useState('');
 
@@ -26,9 +26,8 @@ export default function AddMembers({members, setMembers}){
             handleRemoveMember(members[members.length - 1]);
         }
     };
-
-return (
-    <div>
+    return(
+    <div className={css?.container || ""}>
         <p className="block text-sm font-medium text-gray-700 mb-2">
             Add Members (Email):
         </p>
