@@ -298,13 +298,34 @@ io.on("connection", (socket) => {
 
       socket.join(`room:${roomId}`)
       socket.emit("roomInfo", {status: true, roomInfo: roomInfo})
-      socket.emit("oldMsgs", oldMsgs)
       socket.to(`room:${roomId}`).emit(`room:${roomId}:msgback`, `${theSession.userName} connected at: ${new Date()}`)
     } catch (err) {
       console.log(err)
       socket.emit("roomError", "Unable to join room.")
     } 
   })
+  
+  // Get Old Messages
+  socket.on("getOldMsgs", async (roomId) => {
+    try {
+      const oldMsgs_res = await db.query(
+        `
+        SELECT m.msg_id, m.room_id, m.msg_content, m.created_at, m.edited_at, m.msg_user_id,
+                u.user_name, u.user_email
+        FROM msgs m
+        JOIN users u ON m.msg_user_id = u.user_id
+        WHERE m.room_id = $1
+        ORDER BY m.created_at ASC;
+        `,
+        [roomId]
+      )
+      const oldMsgs = oldMsgs_res.rows
+      socket.emit("oldMsgs", oldMsgs)
+    } catch (err) {
+      console.log("getOldMsgs Error: ", err)
+      socket.emit("roomError", "Failed to load old messages")
+    }
+  }) 
 
   // Leave Room 
   socket.on("leave-room", (roomId) => {
@@ -337,6 +358,31 @@ io.on("connection", (socket) => {
       socket.emit("roomError", err)
     }
   }) 
+
+  //Edit msg 
+  socket.on("editMsg", async (msg)=>{
+    try{
+      const userId = theSession?.userId;
+
+      const newMsgQ = await db.query(
+        `
+          UPDATE msgs 
+              SET msg_content = $1, edited_at = CURRENT_TIMESTAMP
+              WHERE msg_id = $2 AND msg_user_id = $3 
+          RETURNING msg_id, msg_content, edited_at;
+        `
+      , [msg.text, msg.msgId, userId])
+      if(newMsgQ.rows.length === 0) return;
+      const {msg_id, msg_content, edited_at} = newMsgQ.rows[0]
+      
+
+      io.to(`room:${msg.roomId}`).emit(`editedMsg`, {msg_id, msg_content, edited_at});
+
+    } catch (err) {
+      console.log(err)
+      socket.emit("roomError", err)
+    }
+  })
 });
 
 

@@ -161,26 +161,46 @@ CREATE TABLE room_members (
 );
 
 -- Update room
-BEGIN;
+SELECT admin_id 
+    FROM rooms
+    WHERE room_id = $1
 
 UPDATE rooms
-    SET room_name = $2,
-        admin_id = (SELECT user_id FROM users WHERE user_email = $3),
-        room_description = $4
-    WHERE room_id = $1;
+SET room_name = $2,
+    admin_id = (SELECT user_id FROM users WHERE user_email = $3),
+    room_description = $4
+WHERE room_id = $1
 
 DELETE FROM room_members
-    WHERE room_id = $1 AND user_id != ANY($5::int[]);
+    WHERE room_id = $1 AND user_id NOT IN (SELECT user_id FROM users WHERE user_email = ANY($2))
 
 INSERT INTO room_members (room_id, user_id)
-    SELECT $1, UNNEST($5::int[]);
+    SELECT $1, user_id FROM users WHERE user_email = ANY($2)
+    ON CONFLICT (room_id, user_id) DO NOTHING
 
-SELECT rm.user_id, u.user_email
-FROM room_members rm
-JOIN users u ON rm.user_id = u.user_id
-WHERE rm.room_id = $1;
+SELECT r.room_id, r.room_name, r.room_description, r.admin_id, u.user_name as admin_name, u.user_email as admin_email
+    FROM rooms r
+    JOIN users u ON r.admin_id = u.user_id
+    WHERE r.room_id = $1
 
-COMMIT;
+SELECT rm.user_id, u.user_name as member_name, u.user_email
+    FROM room_members rm
+    JOIN users u ON rm.user_id = u.user_id
+    WHERE rm.room_id = $1
+
+-- Remove Room Access
+DELETE FROM room_members 
+  WHERE room_id = $1 AND user_id = $2
+
+
+
+
+
+-- Edit message (only sender can edit)
+UPDATE msgs 
+    SET msg_content = $1, edited_at = CURRENT_TIMESTAMP
+    WHERE msg_id = $2 AND msg_user_id = $3 
+RETURNING msg_id, msg_content, edited_at;
 
 
 
@@ -192,28 +212,6 @@ COMMIT;
 DELETE FROM rooms
 WHERE admin_id = $1 AND admin_id = $2;
 
--- Change room admin (only current admin)
-UPDATE rooms SET admin_id = $1
-WHERE admin_id = $2 AND admin_id = $3;
-
--- Remove person from room (admin removes them)
-DELETE FROM room_members
-WHERE admin_id = $1 AND user_id = $2;
-
--- Get all members in a room
-SELECT u.user_id, u.user_name, rm.joined_at, rm.is_currently_in_room
-FROM room_members rm
-JOIN users u ON rm.user_id = u.user_id
-WHERE rm.admin_id = $1
-ORDER BY u.user_name ASC;
-
-
-
--- Edit message (only sender can edit)
-UPDATE msgs 
-SET msg_content = $1, updated_at = CURRENT_TIMESTAMP
-WHERE msg_id = $2 AND msg_sender = $3 AND is_deleted = false
-RETURNING msg_id, msg_content, updated_at;
 
 -- Soft delete message (only sender or admin can delete)
 UPDATE msgs 
@@ -239,11 +237,6 @@ WHERE m.msg_id = $2;
 SELECT msg_sender FROM msgs 
 WHERE msg_id = $1 AND is_deleted = false
 AND msg_sender = $2;
-
-
--- Check if user is admin of room
-SELECT admin_id FROM rooms 
-WHERE admin_id = $1 AND admin_id = $2;
 
 -- Get all rooms where user is admin
 SELECT admin_id, room_name, created_at FROM rooms 
