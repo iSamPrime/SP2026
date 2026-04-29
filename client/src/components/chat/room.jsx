@@ -39,14 +39,10 @@ export default function Room({socketIo, mySession, setActiveTap, roomInfo, joine
 
             socketIo.emit("getOldMsgs", roomInfo.room_id)
 
-            socketIo.on("roomError", (errorMsg) =>{
-                setJoinedRoom(null)
-                alert(errorMsg)
-            });
             socketIo.once("oldMsgs", (oldMsgs)=>{
                 setMsgs(oldMsgs)
             });
-            socketIo.on("msgback", (msg) => {
+            socketIo.on("sendMsg", (msg) => {
                 setMsgs((prev) => [...prev, msg]);
             });
             socketIo.on("editedMsg", (newMsg) => {
@@ -67,9 +63,8 @@ export default function Room({socketIo, mySession, setActiveTap, roomInfo, joine
             alert(error)
         }
         return () => {
-            socketIo.off("roomError")
             socketIo.off("oldMsgs")
-            socketIo.off("msgback")
+            socketIo.off("sendMsg")
             socketIo.off("editedMsg")
             socketIo.off("deletedMsg")
         }

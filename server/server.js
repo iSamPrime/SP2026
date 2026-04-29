@@ -34,6 +34,25 @@ const db = require("./db")
 
 const port = process.env.PORT;
 
+function emitSocketError(socket, message) {
+  socket.emit("error", typeof message === "string" ? message : "Something went wrong. Please try again.");
+}
+
+async function emitJoindLeftRoom (roomId, message, userId) {
+  if (!roomId) return;
+
+  const creLeaveMsg = await db.query(
+    `
+    INSERT INTO msgs (room_id, msg_content, msg_user_id)
+    VALUES ($1, $2, $3)
+    RETURNING msg_id, room_id, msg_content, msg_user_id, created_at, edited_at;
+    `,
+    [roomId, message, 1]
+  )
+
+  io.to(`room:${roomId}`).emit("sendMsg", {...creLeaveMsg.rows[0]})
+}
+
 app.use(express.static(path.join(__dirname, "../client/dist"))); 
 
 
@@ -125,7 +144,7 @@ io.on("connection", (socket) => {
             WHERE room_id = $1
         `, [roomId, roomName, roomAdminEmail, roomDescription]);
 
-        if(!members.includes((m)=>m===roomAdminEmail)){
+        if(!members.includes(roomAdminEmail)){
           members.push(roomAdminEmail)
         }
 
@@ -179,6 +198,7 @@ io.on("connection", (socket) => {
 
     } catch (err) {
         console.log("UpdateRoom Error: ", err);
+        emitSocketError(socket, "Unable to update room. Please check your information and try again.");
     }
   });
 
@@ -193,7 +213,8 @@ io.on("connection", (socket) => {
       socket.emit("removedAccess", roomId)
       socket.emit("error", "Your access have been removed!")
     } catch (err) {
-        console.log("UpdateRoom Error: ", err);
+        console.log("RemoveRoomAccess Error: ", err);
+        emitSocketError(socket, "Unable to remove room access. Please try again.");
     }
   });
 
@@ -204,6 +225,12 @@ io.on("connection", (socket) => {
       const emails = reqRoom.users;
       const roomDesc = reqRoom.roomDescription || "A new room!"
       const adminId = theSession.userId;
+      if (!roomName) {
+        return socket.emit("crtdRoom", {status: "Error", error: "Room name is required."})
+      }
+      if (emails.length === 0) {
+        return socket.emit("crtdRoom", {status: "Error", error: "Please add at least one member email."})
+      }
       const toAddUsers = []
       toAddUsers.push(adminId) 
 
@@ -213,7 +240,7 @@ io.on("connection", (socket) => {
           [u]
         )
         if(userFound.rows.length === 0){ 
-          return socket.emit("roomInfo", {status: false, error: "You are not a member of this room!"})
+          return socket.emit("crtdRoom", {status: "Error", error: `User ${u} is not registered. Please check the email list and try again.`})
         }
         const userId = userFound.rows[0].user_id;
         toAddUsers.push(userId)
@@ -243,7 +270,7 @@ io.on("connection", (socket) => {
       socket.emit("crtdRoom", {status: "Success", room_id: room_id, roomName: roomName})
     } catch (err){
       console.log(err)
-      socket.emit("roomInfo", {status: false, error: err})
+      socket.emit("crtdRoom", {status: "Error", error: "Unable to create room. Please try again."})
     }
   })
 
@@ -253,6 +280,9 @@ io.on("connection", (socket) => {
       const userId = theSession.userId;
       if (!userId) {
         return socket.emit("roomInfo", {status: false, error: "You must be logged in to join a room."}) 
+      }
+      if (!roomId) {
+        return socket.emit("roomInfo", {status: false, error: "Room ID is required to join a room."})
       }
 
       const roomFound = await db.query(
@@ -270,8 +300,7 @@ io.on("connection", (socket) => {
     
       const userFound = await db.query(
         `
-        SELECT rm.joined_at,
-               u.user_name
+        SELECT rm.joined_at
         FROM room_members rm
         JOIN users u ON rm.user_id = u.user_id
         WHERE rm.room_id = $1 AND u.user_id = $2;
@@ -298,10 +327,10 @@ io.on("connection", (socket) => {
 
       socket.join(`room:${roomId}`)
       socket.emit("roomInfo", {status: true, roomInfo: roomInfo})
-      socket.to(`room:${roomId}`).emit(`room:${roomId}:msgback`, `${theSession.userName} connected at: ${new Date()}`)
+      await emitJoindLeftRoom (roomId, `${theSession.userName} connected to the room.`, theSession.userId)
     } catch (err) {
       console.log(err)
-      socket.emit("roomError", "Unable to join room.")
+      emitSocketError(socket, "Unable to join room.")
     } 
   })
   
@@ -323,20 +352,40 @@ io.on("connection", (socket) => {
       socket.emit("oldMsgs", oldMsgs)
     } catch (err) {
       console.log("getOldMsgs Error: ", err)
-      socket.emit("roomError", "Failed to load old messages")
+      emitSocketError(socket, "Failed to load old messages")
     }
   }) 
 
   // Leave Room 
-  socket.on("leave-room", (roomId) => {
-    socket.to(`room:${roomId}`).emit(`room:${roomId}:msgback`, `${theSession.userName} left at: ${new Date()}`)
-    socket.leave(`room:${roomId}`);
+  socket.on("leave-room", async (roomId) => {
+    try {
+      await emitJoindLeftRoom (roomId, `${theSession.userName} left the room.`, theSession.userId)
+      socket.leave(`room:${roomId}`)
+    } catch (err) {
+      console.log("leave-room Error:", err)
+    }
   })  
+
+  socket.on("disconnecting", async (reason) => {
+    for (const room of socket.rooms) {
+      if (room.startsWith("room:")) {           // only your chat rooms
+        const roomId = room.split(":")[1];
+        await emitJoindLeftRoom(
+          roomId,
+          `${theSession.userName} left the room because of: ${reason}.`,
+          theSession.userId
+        );
+      }
+    }
+  });
 
   // Recive and send messeges 
   socket.on("sendMsg", async (msg)=>{
     try{
       const userId = theSession.userId;
+      if (!msg?.roomId || !msg?.text?.trim()) {
+        return emitSocketError(socket, "Please type a message before sending.");
+      }
       const dataBaseMsg = await db.query(
         `
         INSERT INTO msgs (room_id, msg_content, msg_user_id)
@@ -346,16 +395,11 @@ io.on("connection", (socket) => {
         [msg.roomId, msg.text, userId]
       )
 
-      const resMsg = {
-        ...dataBaseMsg.rows[0],
-        user_name: theSession.userName
-      };
-
-      io.to(`room:${msg.roomId}`).emit(`msgback`, resMsg);
+      io.to(`room:${msg.roomId}`).emit("sendMsg", {...dataBaseMsg.rows[0]});
 
     } catch (err) {
       console.log(err)
-      socket.emit("roomError", err)
+      emitSocketError(socket, "Unable to send message. Please try again.")
     }
   }) 
 
@@ -380,7 +424,7 @@ io.on("connection", (socket) => {
 
     } catch (err) {
       console.log(err)
-      socket.emit("roomError", err)
+      emitSocketError(socket, "Unable to edit message. Please try again.")
     }
   })
 
@@ -388,6 +432,9 @@ io.on("connection", (socket) => {
   socket.on("deleteMsg", async (msg)=>{
     try{
       const userId = theSession?.userId;
+      if (!msg?.msgId || !msg?.roomId) {
+        return emitSocketError(socket, "Invalid delete request. Please try again.");
+      }
 
       await db.query(
         `
@@ -405,7 +452,7 @@ io.on("connection", (socket) => {
 
     } catch (err) {
       console.log(err)
-      socket.emit("roomError", err)
+      emitSocketError(socket, "Unable to delete message. Please try again.")
     }
   })
 });
@@ -415,22 +462,16 @@ io.on("connection", (socket) => {
 /* ----     AUTH  &  Security    ---- */
 
 // Security 
-function validatEmail(data){
-  return body(data).trim().escape().isEmail().withMessage('Please enter a valid email!')
-}
 function validatData(data){
   return body(data).trim().escape()
-}
-function authMw(req, res, next){
-  if(!req.session.loggedIn) return res.redirect("/Not_logged_in")
-  next()
 }
 
 // Register 
 app.post("/register", 
   [
-    validatEmail('email'),
-    validatData('pw')
+    validatData('email'),
+    validatData('password'),
+    validatData('userName')
   ],
   async (req, res)=>{
     try{
@@ -443,13 +484,24 @@ app.post("/register",
       if (!email) { return res.send("Please type an email!!")} 
       if (!pw) { return res.send("Please type a password!")} 
 
-      const aUser = await db.query(
-        'SELECT user_id FROM users WHERE user_email = $1;',
+      const emailExists = await db.query(
+        `SELECT user_id FROM users
+          WHERE user_email = $1
+        `,
         [email]
       )
-
-      if(aUser.rows.length > 0){ 
+      if(emailExists.rows.length > 0){ 
         return res.send("Account already exist, login instade.")
+      }
+
+      const userNameExists = await db.query(
+        `SELECT user_id FROM users
+          WHERE user_name = $1;
+        `,
+        [userName]
+      )
+      if(userNameExists.rows.length > 0){ 
+        return res.send("User name already exist, use another one instade.")
       }
 
       const password = bcrypt.hashSync(pw, saltRounds)
@@ -483,8 +535,8 @@ app.post("/register",
 // Login
 app.post("/login",  
   [
-    validatEmail('email'),
-    validatData('pw')
+    validatData('email'),
+    validatData('password')
   ], 
   async (req, res)=>{ 
     try{
@@ -505,7 +557,7 @@ app.post("/login",
       }
       const { user_id, user_name, password_hash } = aUser.rows[0];
 
-      const checkedPw = bcrypt.compareSync(pw, password_hash) //EDIT
+      const checkedPw = bcrypt.compareSync(pw, password_hash) 
       if (checkedPw){ 
       
         req.session.userId = user_id;
@@ -525,7 +577,7 @@ app.post("/login",
   } 
 )
 
-app.get("/session", authMw, (req, res)=>{
+app.get("/session", (req, res)=>{
   const session0 = req.session
   if(req.session.userId) {
     res.json({status: "Session", session: session0}) 
@@ -540,5 +592,4 @@ app.get("/logout", (req,res)=>{
 })
 
  
-
 server.listen(port, ()=>{console.log("Server is running on: http://localhost:" + port)});

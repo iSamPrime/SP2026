@@ -65,7 +65,7 @@ export default function RoomSearch({ setRoomInfo, socketIo, setJoinedRoom}){
                 <div className="flex gap-2">
                     <input 
                         className="flex-1 border-2 border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-all"
-                        type="text" 
+                        type="number" 
                         placeholder="Enter room ID..." 
                         onChange={(e) => setJoinRoomId(e.target.value)}
                         onKeyDown={handelEnterRoomWithEnter}

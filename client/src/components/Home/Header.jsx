@@ -53,7 +53,6 @@ return(
                         <nav  className="flex flex-col gap-2" onClick={()=> setNavOpen(false)}>
                             <button className={Css.buttonNav} onClick={() => setActiveTap(21)} >Profile</button>
                             <button className={Css.buttonNav} onClick={() => setActiveTap(22)} >Dash board</button>
-                            <button className={Css.buttonNav} onClick={() => setActiveTap(23)} >Settings</button>
                             <button className={Css.buttonNav} onClick={() => setActiveTap(24 )} >Log out</button>
                         </nav>
                     </div>

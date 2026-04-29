@@ -7,7 +7,6 @@ import Header from './Header.jsx';
 import RoomSearch from '../chat/RoomSearch.jsx';
 import DashBoard from '../DropMenu.jsx/DashBoard.jsx';
 import Profile from '../DropMenu.jsx/Profile.jsx';
-import Settings from '../DropMenu.jsx/Settings.jsx';
 import Auth from '../auth/auth.jsx';
 import Room from '../chat/room.jsx';
 
@@ -30,6 +29,9 @@ export default function Home({mySession, activeTap, setActiveTap}){
             console.log(err)
         };
         socketIo.on("error", handelErr)
+        return () => {
+            socketIo.off("error", handelErr)
+        }
     },[socketIo])
 
 return (<>
@@ -48,7 +50,6 @@ return (<>
         { 
             (activeTap === 21 && <Profile setActiveTap={setActiveTap}/>) || 
             (activeTap === 22 && <DashBoard setActiveTap={setActiveTap} socketIo={socketIo} />) || 
-            (activeTap === 23 && <Settings setActiveTap={setActiveTap}/>) || 
             (activeTap === 24 && <Auth setActiveTap={setActiveTap} mySession={mySession}/> ) ||
             (joinedRoom &&    
                 <Room /* 11 */
