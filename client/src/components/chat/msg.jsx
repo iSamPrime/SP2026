@@ -78,7 +78,21 @@ return (
         
         <div className={!lastMsgSender && "grid grid-cols-2"}>
             {!lastMsgSender &&
-                <p className="text-xs justify-self-start text-red-500 ">{m.user_name}</p>
+                <p 
+                className={`
+                    text-xs justify-self-start 
+                    ${(m?.msg_user_id === 1 ) ? 
+                        "text-red-500"
+                        :
+                        (
+                        (m?.msg_user_id === mySession?.userId ) ? 
+                        "text-purple-500 " :  "text-green-500"
+                        )
+                    }
+                `}
+                >
+                    {m.user_name}
+                </p>
             }
             <div className="flex justify-self-end gap-2">
                 {m?.msg_user_id === mySession?.userId && <>
@@ -99,7 +113,7 @@ return (
                         <line x1="14" y1="11" x2="14" y2="17"></line>
                     </svg>
                 </>}      
-                <p className="text-xs text-gray-500">{m.created_at}</p> 
+                <p className="text-xs text-gray-500">{new Date(m.created_at).toLocaleString()}</p>
             </div>
         </div>
         
