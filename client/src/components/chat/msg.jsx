@@ -5,7 +5,7 @@ export default function Msg({m, i, msgs, mySession, css, socketIo}){
     const [editing, setEditing] = useState(false)
     const [newText, setNewText] = useState(m.msg_content)
     const lastMsgSender = i > 0 && msgs[i-1]?.msg_user_id === msgs[i].msg_user_id;
-    
+    console.log(lastMsgSender)
     const toggleEditing = ()=>{
         if(!editing){
             setEditing(true)
@@ -63,15 +63,21 @@ export default function Msg({m, i, msgs, mySession, css, socketIo}){
 return (       
     <div key={m.msg_id} 
         className={`
-            ${(m?.msg_user_id === mySession?.userId ) ? "bg-blue-100 self-start" :  "bg-green-100 self-end" } 
-            w-[80%] min-h-10 rounded-xl px-2 py-1 line-clamp-1000000000
+            ${m?.msg_user_id === 1 ? 
+                "bg-gray-200 self-center w-[60%]"
+                : 
+                ((m?.msg_user_id === mySession?.userId ) ? 
+                    "bg-blue-100 self-start w-[80%]" :  "bg-green-100 self-end w-[80%]"
+                ) 
+            } 
+            min-h-10 rounded-xl px-2 py-1 line-clamp-1000000000
             ${lastMsgSender ? 'mt-1' : 'mt-4'}
 
         `}
     >   
         
         <div className={!lastMsgSender && "grid grid-cols-2"}>
-            {lastMsgSender ? '' : 
+            {!lastMsgSender &&
                 <p className="text-xs justify-self-start text-red-500 ">{m.user_name}</p>
             }
             <div className="flex justify-self-end gap-2">

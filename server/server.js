@@ -43,11 +43,16 @@ async function emitJoindLeftRoom (roomId, message, userId) {
 
   const creLeaveMsg = await db.query(
     `
-    INSERT INTO msgs (room_id, msg_content, msg_user_id)
-    VALUES ($1, $2, $3)
-    RETURNING msg_id, room_id, msg_content, msg_user_id, created_at, edited_at;
+    WITH inserted AS (
+      INSERT INTO msgs (room_id, msg_content, msg_user_id)
+      VALUES ($1, $2, $3)
+      RETURNING msg_id, room_id, msg_content, msg_user_id, created_at, edited_at
+    )
+    SELECT inserted.*, u.user_name
+    FROM inserted
+    JOIN users u ON inserted.msg_user_id = u.user_id;
     `,
-    [roomId, message, 1]
+    [roomId, message, "1"]
   )
 
   io.to(`room:${roomId}`).emit("sendMsg", {...creLeaveMsg.rows[0]})
@@ -295,8 +300,8 @@ io.on("connection", (socket) => {
       if(roomFound.rows.length === 0){
         return socket.emit("roomInfo", {status: false, error:"Room was not found!"})
       }
-      const { room_id, room_name, created_at, room_description, admin_id } = roomFound.rows[0]
-      const roomInfo = {room_id: room_id, room_name: room_name, created_at :created_at, room_description: room_description, admin_id: admin_id}
+  
+      const roomInfo = {...roomFound.rows[0]}
     
       const userFound = await db.query(
         `
@@ -388,14 +393,19 @@ io.on("connection", (socket) => {
       }
       const dataBaseMsg = await db.query(
         `
-        INSERT INTO msgs (room_id, msg_content, msg_user_id)
-        VALUES ($1, $2, $3)
-        RETURNING msg_id, room_id, msg_content, msg_user_id, created_at, edited_at
+        WITH inserted AS (
+          INSERT INTO msgs (room_id, msg_content, msg_user_id)
+          VALUES ($1, $2, $3)
+          RETURNING msg_id, room_id, msg_content, msg_user_id, created_at, edited_at
+        )
+        SELECT inserted.*, u.user_name
+        FROM inserted
+        JOIN users u ON inserted.msg_user_id = u.user_id;
         `,
         [msg.roomId, msg.text, userId]
       )
 
-      io.to(`room:${msg.roomId}`).emit("sendMsg", {...dataBaseMsg.rows[0]});
+      io.to(`room:${msg.roomId}`).emit("sendMsg", dataBaseMsg.rows[0]);
 
     } catch (err) {
       console.log(err)
