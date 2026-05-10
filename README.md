@@ -16,7 +16,7 @@ cd client
 npm run watch-build
 ```
 
-# Git hanteringen. 
+### Git hanteringen. 
 
 För 
 ```
@@ -29,11 +29,9 @@ git push -u origin main
 ```
 git pull origin main
 ```
-#
+***
 
-
-
-# Skapa en ny repository 
+### Skapa en ny repository 
 ```
 git init
 git commit -m "first commit"
