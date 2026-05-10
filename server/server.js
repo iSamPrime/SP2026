@@ -35,7 +35,7 @@ const db = require("./db")
 const port = process.env.PORT;
 
 function emitSocketError(socket, message) {
-  socket.emit("error", typeof message === "string" ? message : "Something went wrong. Please try again.");
+  socket.emit("error", message === "string" ? message : "Something went wrong. Please try again.");
 }
 
 async function emitJoindLeftRoom (roomId, message, userId) {
