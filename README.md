@@ -44,8 +44,7 @@ git push -u origin main
 
 
 
-# Dokumentation IFF
-## GA 2026
+# Dokumentation av slutpojektet (SP2026)
 
 ---
 
